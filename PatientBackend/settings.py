@@ -52,7 +52,7 @@ REST_FRAMEWORK = {
 }
 
 GRAPHENE = {
-    "SCHEMA": "VSBackend.main_schema.schema",
+    "SCHEMA": "PatientBackend.main_schema.schema",
 }
 
 
