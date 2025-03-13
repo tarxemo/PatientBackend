@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'authApp',
     'rest_framework',
     "corsheaders",
+    'patient',
 ]
 
 # JWT settings for authentication
