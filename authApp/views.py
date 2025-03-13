@@ -110,6 +110,60 @@ class DeleteCustomUser(Mutation):
         user.delete()
         return DeleteCustomUser(success=True)
 
+# import os
+# import subprocess
+# import torch
+# import whisper
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from rest_framework.parsers import MultiPartParser, FormParser
+# from django.core.files.storage import default_storage
+# from django.conf import settings
+# from rest_framework import status
+
+# # Load the Whisper model
+# model_path = "whisper_large.pth"
+# model = whisper.load_model("large")
+
+# # If a saved model exists, load it
+# if os.path.exists(model_path):
+#     model.load_state_dict(torch.load(model_path))
+#     print("✅ Model loaded from", model_path)
+
+# class TranscribeAudioView(APIView):
+#     parser_classes = (MultiPartParser, FormParser)
+
+#     def convert_audio_to_16khz(self, audio_path):
+#         """Convert audio to 16kHz if needed."""
+#         output_path = audio_path.replace(".wav", "_16k.wav")
+#         if not os.path.exists(output_path):
+#             command = f"ffmpeg -i {audio_path} -ar 16000 -ac 1 {output_path}"
+#             subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#         return output_path
+
+#     def post(self, request, *args, **kwargs):
+#         """Handle file upload and transcription."""
+#         if "audio_file" not in request.FILES:
+#             return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Define the upload directory
+#         upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
+#         os.makedirs(upload_dir, exist_ok=True)  # Ensure directory exists
+
+#         # Save uploaded file
+#         audio_file = request.FILES["audio_file"]
+#         file_path = os.path.join(upload_dir, audio_file.name)
+#         with open(file_path, "wb+") as destination:
+#             for chunk in audio_file.chunks():
+#                 destination.write(chunk)
+
+#         # Convert and transcribe the audio
+#         converted_audio = self.convert_audio_to_16khz(file_path)
+#         result = model.transcribe(converted_audio, language="swahili")
+
+#         return Response({"transcript": result["text"]}, status=status.HTTP_200_OK)
+
+
 class Mutation(graphene.ObjectType):
     create_user = CreateCustomUser.Field()
     update_user = UpdateCustomUser.Field()
