@@ -1,8 +1,7 @@
 import graphene
 from graphene import InputObjectType
 
-# Input Object for CustomUser
-class CustomUserInput(InputObjectType):
+class UserInput(InputObjectType):
     username = graphene.String(required=True)
     email = graphene.String(required=True)
     password = graphene.String(required=True)
@@ -11,4 +10,21 @@ class CustomUserInput(InputObjectType):
     address = graphene.String()
     profile_picture = graphene.String()
     date_of_birth = graphene.Date()
-    is_verified = graphene.Boolean()
+    is_verified = graphene.Boolean(default_value=False)  # Ensure default False
+
+
+# Define Input Type
+class UserUpdateInput(InputObjectType):
+    username = graphene.String()
+    email = graphene.String()
+    user_type = graphene.String()
+    phone_number = graphene.String()
+    address = graphene.String()
+    profile_picture = graphene.String()
+    date_of_birth = graphene.Date()
+    is_verified = graphene.Boolean(default_value=False)
+
+    # Additional fields for password change
+    old_password = graphene.String()
+    new_password = graphene.String()
+    confirm_password = graphene.String()

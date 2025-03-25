@@ -7,10 +7,11 @@ from .decorators import login_required_resolver
 class Query(ObjectType):
     # CustomUser Queries
     CustomUsers = List(CustomUserOutput)
-    CustomUser = Field(CustomUserOutput, id=graphene.ID(required=True))
+    get_user = Field(CustomUserOutput)
 
     def resolve_CustomUsers(self, info):
         return CustomUser.objects.all()
 
-    def resolve_CustomUser(self, info, id):
-        return CustomUser.objects.get(id=id)
+    @login_required_resolver
+    def resolve_get_user(self, info):
+        return CustomUser.objects.get(id=info.context.user.id)
