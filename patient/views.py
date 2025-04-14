@@ -203,3 +203,21 @@ class PatientMutation(graphene.ObjectType):
     prescribe_test = PrescribeTest.Field()
     upload_test_result = UploadTestResult.Field()
     create_or_update_prescription = CreateOrUpdatePrescription.Field()
+
+
+
+# api/views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class UserListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        users = User.objects.exclude(id=request.user.id)
+        data = [{'id': user.id, 'username': user.username} for user in users]
+        return Response(data)

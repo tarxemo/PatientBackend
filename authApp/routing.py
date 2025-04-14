@@ -1,6 +1,8 @@
 from django.urls import path
 from PatientBackend.consumers import CallConsumer
+from django.urls import re_path
 
 websocket_urlpatterns = [
-    path("ws/call/<int:user_id>/", CallConsumer.as_asgi()),
+    re_path(r"ws/call/$", CallConsumer.as_asgi()),
 ]
+

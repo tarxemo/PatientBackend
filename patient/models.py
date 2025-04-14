@@ -29,8 +29,19 @@ class Doctor(BaseProfile):
     def __str__(self):
         return f"Dr. {self.user.get_full_name()} ({self.specialization})"
 
+# Doctor Model
+class LabTech(BaseProfile):
+    specialization = models.CharField(max_length=100)
+    license_number = models.CharField(max_length=50, unique=True)
+    years_of_experience = models.IntegerField(validators=[MinValueValidator(0)])
+    is_available = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Dr. {self.user.get_full_name()} ({self.specialization})"
+
 # Laboratory Model
 class Laboratory(BaseProfile):
+    lab_tech = models.ForeignKey(LabTech, on_delete=models.CASCADE, null=True, blank=True)
     lab_name = models.CharField(max_length=100)
     accreditation_number = models.CharField(max_length=50, unique=True)
     location = models.CharField(max_length=255)
@@ -42,7 +53,7 @@ class Laboratory(BaseProfile):
 class Symptom(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
-
+    swahili_name = models.CharField(default="swahili", max_length=50)
     def __str__(self):
         return self.name
 
@@ -51,7 +62,7 @@ class Disease(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
     related_symptoms = models.ManyToManyField(Symptom, related_name='related_diseases')
-
+    doctors = models.ManyToManyField(Doctor, related_name="doctors")
     def __str__(self):
         return self.name
 
