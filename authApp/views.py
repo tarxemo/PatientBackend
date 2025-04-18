@@ -1,3 +1,4 @@
+from authApp.decorators import login_required_resolver
 import graphene
 from graphene import Mutation
 from .models import *
@@ -6,6 +7,8 @@ from .outputs import *
 from django.contrib.auth import authenticate
 from graphql import GraphQLError
 from rest_framework_simplejwt.tokens import RefreshToken
+from graphql import GraphQLError
+from django.contrib.auth.hashers import check_password
 
 
 class LoginMutation(graphene.Mutation):
@@ -49,6 +52,7 @@ class RefreshTokenMutation(graphene.Mutation):
 class LogoutMutation(graphene.Mutation):
     success = graphene.Boolean()
 
+    @login_required_resolver
     def mutate(self, info):
         user = info.context.user
         if user.is_anonymous:
@@ -59,42 +63,59 @@ class LogoutMutation(graphene.Mutation):
 
 
 # Mutation to create a new user
-class CreateCustomUser(Mutation):
+class CreateUser(Mutation):
+    print("Started but not completed")
     class Arguments:
-        user_data = CustomUserInput(required=True)
+        userData = UserInput(required=False)
 
     user = graphene.Field(CustomUserOutput)
 
-    def mutate(self, info, user_data):
+    def mutate(self, info, userData):
+        print(userData)
         user = CustomUser.objects.create(
-            username=user_data.username,
-            email=user_data.email,
-            # user_type=user_data.user_type,
-            phone_number=user_data.phone_number,
-            address=user_data.address,
-            profile_picture=user_data.profile_picture,
-            date_of_birth=user_data.date_of_birth,
-            # is_verified=user_data.is_verified,
+            username=userData.username,
+            email=userData.email
         )
-        user.set_password(user_data.password)
+        user.set_password(userData.password)
         user.save()
-        return CreateCustomUser(user=user)
+        return CreateUser(user=user)
 
-# Mutation to update a user
+# Define Mutation
 class UpdateCustomUser(Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
-        user_data = CustomUserInput(required=True)
+        user_data = UserUpdateInput(required=True)
 
     user = graphene.Field(CustomUserOutput)
 
-    def mutate(self, info, id, user_data):
-        user = CustomUser.objects.get(id=id)
+    @login_required_resolver
+    def mutate(self, info, user_data):
+        user = CustomUser.objects.get(id=info.context.user.id)
+
+        # Handle password update separately
+        if "old_password" in user_data and "new_password" in user_data and "confirm_password" in user_data:
+            old_password = user_data.pop("old_password")
+            new_password = user_data.pop("new_password")
+            confirm_password = user_data.pop("confirm_password")
+
+            # Verify old password
+            if not check_password(old_password, user.password):
+                raise GraphQLError("Old password is incorrect.")
+
+            # Ensure new password and confirm password match
+            if new_password != confirm_password:
+                raise GraphQLError("New password and confirm password do not match.")
+
+            # Prevent using the same old password
+            if check_password(new_password, user.password):
+                raise GraphQLError("New password cannot be the same as the old password.")
+
+            # Set the new password
+            user.set_password(new_password)
+
+        # Update other user details
         for field, value in user_data.items():
-            if field == "password":
-                user.set_password(value)
-            else:
-                setattr(user, field, value)
+            setattr(user, field, value)
+
         user.save()
         return UpdateCustomUser(user=user)
 
@@ -123,7 +144,7 @@ class DeleteCustomUser(Mutation):
 
 # # Load the Whisper model
 # model_path = "whisper_large.pth"
-# model = whisper.load_model("large")
+# model = whisper.load_model("medium")
 
 # # If a saved model exists, load it
 # if os.path.exists(model_path):
@@ -165,7 +186,7 @@ class DeleteCustomUser(Mutation):
 
 
 class Mutation(graphene.ObjectType):
-    create_user = CreateCustomUser.Field()
+    create_user = CreateUser.Field()
     update_user = UpdateCustomUser.Field()
     delete_user = DeleteCustomUser.Field()
     login = LoginMutation.Field()

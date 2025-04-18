@@ -13,6 +13,27 @@ from .outputs import (
     ConsultationOutput, MedicalTestOutput, PrescribedTestOutput, TestResultOutput, PrescriptionOutput
 )
 
+import joblib
+import os
+from django.conf import settings
+
+# Load model and vectorizer once
+MODEL_PATH = os.path.join(settings.BASE_DIR, 'ai', 'model', 'disease_prediction_model.pkl')
+VECTORIZER_PATH = os.path.join(settings.BASE_DIR, 'ai', 'model', 'tfidf_vectorizer.pkl')
+
+model = joblib.load(MODEL_PATH)
+vectorizer = joblib.load(VECTORIZER_PATH)
+class PredictDisease(graphene.Mutation):
+    class Arguments:
+        symptoms = graphene.String(required=True)
+
+    predicted_disease = graphene.String()
+
+    def mutate(self, info, symptoms):
+        vector = vectorizer.transform([symptoms])
+        prediction = model.predict(vector)
+        return PredictDisease(predicted_disease=prediction[0])
+
 # Mutation to create/update a Patient
 class CreateOrUpdatePatient(Mutation):
     class Arguments:
@@ -203,3 +224,4 @@ class PatientMutation(graphene.ObjectType):
     prescribe_test = PrescribeTest.Field()
     upload_test_result = UploadTestResult.Field()
     create_or_update_prescription = CreateOrUpdatePrescription.Field()
+    predict_disease = PredictDisease.Field()

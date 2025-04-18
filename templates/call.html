@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Call</title>
+</head>
+<body>
+    <h1>Voice Call</h1>
+    <h1>{{ request.user.username }}</h1>
+    
+    <label for="userList">Call:</label>
+    <select id="userList"></select>
+    <button id="call">Call</button>
+    <button id="answer">Answer</button>
+
+    <h2>Call Status: <span id="status">Idle</span></h2>
+
+    <script>
+        const userId = "{{ request.user.id }}";  // Get user ID from Django template context
+        const socket = new WebSocket(`ws://172.16.130.30:8000/ws/call/${userId}/`);  // Include user ID in the WebSocket URL
+        let localStream;
+        let peerConnection;
+        let selectedUser;
+
+        // Fetch users list
+        async function fetchUsers() {
+            const response = await fetch("/get_users/");
+            const users = await response.json();
+            const userList = document.getElementById("userList");
+            userList.innerHTML = "";
+            users.forEach(user => {
+                let option = document.createElement("option");
+                option.value = user.username;
+                option.textContent = user.username;
+                userList.appendChild(option);
+            });
+        }
+
+        fetchUsers(); // Load users on page load
+
+        async function startCall() {
+            selectedUser = document.getElementById("userList").value;
+            if (!selectedUser) {
+                alert("Please select a user to call.");
+                return;
+            }
+        
+            document.getElementById("status").innerText = "Calling " + selectedUser + "...";
+        
+            // Check if mediaDevices API is available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Your browser does not support audio calls.");
+                return;
+            }
+        
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                peerConnection = new RTCPeerConnection();
+        
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+        
+                peerConnection.onicecandidate = event => {
+                    if (event.candidate) {
+                        socket.send(JSON.stringify({
+                            action: "ice_candidate",
+                            candidate: event.candidate,
+                            to: selectedUser
+                        }));
+                    }
+                };
+        
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+        
+                socket.send(JSON.stringify({
+                    action: "call",
+                    target: selectedUser,
+                    offer: offer
+                }));
+            } catch (error) {
+                console.error("Error accessing microphone:", error);
+                alert("Failed to access microphone. Please check your browser settings.");
+            }
+        }
+        
+
+        socket.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === "incoming_call") {
+                document.getElementById("status").innerText = "Incoming call from " + data.from;
+                alert("Incoming call from " + data.from);
+            }
+
+            if (data.type === "call_answered") {
+                document.getElementById("status").innerText = "Call in progress...";
+            }
+
+            if (data.type === "ice_candidate") {
+                if (peerConnection) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            }
+        };
+
+        document.getElementById("call").onclick = startCall;
+        document.getElementById("answer").onclick = () => {
+            socket.send(JSON.stringify({ action: "answer" }));
+            document.getElementById("status").innerText = "Call answered!";
+        };
+    </script>
+</body>
+</html>
