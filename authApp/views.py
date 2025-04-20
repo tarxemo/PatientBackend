@@ -11,6 +11,23 @@ from graphql import GraphQLError
 from django.contrib.auth.hashers import check_password
 
 
+import os
+import shutil
+import subprocess
+import json
+import joblib
+import whisper
+import numpy as np
+import pandas as pd
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.views import APIView
+from patient.models import Disease  # Assuming Disease model exists
+
+
 class LoginMutation(graphene.Mutation):
     class Arguments:
         username = graphene.String(required=True)
@@ -64,61 +81,82 @@ class LogoutMutation(graphene.Mutation):
 
 # Mutation to create a new user
 class CreateUser(Mutation):
-    # print("Started but not completed")
     class Arguments:
-        userData = UserInput(required=False)
+        user_data = UserInput(required=True)  # Changed to required=True
 
     user = graphene.Field(CustomUserOutput)
 
-    def mutate(self, info, userData):
-        print(userData)
-        user = CustomUser.objects.create(
-            username=userData.username,
-            email=userData.email
-        )
-        user.set_password(userData.password)
-        user.save()
-        return CreateUser(user=user)
+    def mutate(self, info, user_data):
+        try:
+            # Create user with all fields
+            user = CustomUser(
+                username=user_data.username,
+                email=user_data.email,
+                user_type=user_data.user_type if hasattr(user_data, 'user_type') else 'PATIENT',
+                phone_number=user_data.phone_number if hasattr(user_data, 'phone_number') else None,
+                address=user_data.address if hasattr(user_data, 'address') else None,
+                profile_picture=user_data.profile_picture if hasattr(user_data, 'profile_picture') else None,
+                date_of_birth=user_data.date_of_birth if hasattr(user_data, 'date_of_birth') else None,
+                is_verified=user_data.is_verified if hasattr(user_data, 'is_verified') else False,
+                first_name=user_data.first_name if hasattr(user_data, 'first_name') else '',
+                last_name=user_data.last_name if hasattr(user_data, 'last_name') else ''
+            )
+            
+            user.set_password(user_data.password)
+            user.save()
+            
+            return CreateUser(user=user)
+            
+        except Exception as e:
+            raise GraphQLError(f"User creation failed: {str(e)}")
+        
 
 # Define Mutation
 class UpdateCustomUser(Mutation):
     class Arguments:
         user_data = UserUpdateInput(required=True)
+        user_id = graphene.ID(required=True)  # Now required since we're not using context user
 
     user = graphene.Field(CustomUserOutput)
 
-    @login_required_resolver
-    def mutate(self, info, user_data):
-        user = CustomUser.objects.get(id=info.context.user.id)
+    def mutate(self, info, user_data, user_id):
+        try:
+            # Get user by provided ID (no auth check)
+            user = CustomUser.objects.get(id=user_id)
 
-        # Handle password update separately
-        if "old_password" in user_data and "new_password" in user_data and "confirm_password" in user_data:
-            old_password = user_data.pop("old_password")
-            new_password = user_data.pop("new_password")
-            confirm_password = user_data.pop("confirm_password")
+            # Handle password update if provided
+            if hasattr(user_data, 'old_password') and hasattr(user_data, 'new_password'):
+                if not check_password(user_data.old_password, user.password):
+                    raise GraphQLError("Old password is incorrect")
+                
+                if user_data.new_password != getattr(user_data, 'confirm_password', None):
+                    raise GraphQLError("New passwords don't match")
+                
+                if check_password(user_data.new_password, user.password):
+                    raise GraphQLError("New password cannot be the same as old password")
+                
+                user.set_password(user_data.new_password)
 
-            # Verify old password
-            if not check_password(old_password, user.password):
-                raise GraphQLError("Old password is incorrect.")
+            # Update regular fields
+            update_fields = []
+            for field in [
+                'username', 'first_name', 'last_name', 'email',
+                'user_type', 'phone_number', 'address',
+                'profile_picture', 'date_of_birth', 'is_verified'
+            ]:
+                if hasattr(user_data, field):
+                    new_value = getattr(user_data, field)
+                    if new_value is not None:
+                        setattr(user, field, new_value)
+                        update_fields.append(field)
 
-            # Ensure new password and confirm password match
-            if new_password != confirm_password:
-                raise GraphQLError("New password and confirm password do not match.")
+            user.save(update_fields=update_fields)
+            return UpdateCustomUser(user=user)
 
-            # Prevent using the same old password
-            if check_password(new_password, user.password):
-                raise GraphQLError("New password cannot be the same as the old password.")
-
-            # Set the new password
-            user.set_password(new_password)
-
-        # Update other user details
-        for field, value in user_data.items():
-            setattr(user, field, value)
-
-        user.save()
-        return UpdateCustomUser(user=user)
-
+        except CustomUser.DoesNotExist:
+            raise GraphQLError("User not found")
+        except Exception as e:
+            raise GraphQLError(f"Update failed: {str(e)}")
 # Mutation to delete a user
 class DeleteCustomUser(Mutation):
     class Arguments:
@@ -279,3 +317,4 @@ class TranscribeAndPredictDiseaseView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
