@@ -11,6 +11,23 @@ class BaseProfileOutput(ObjectType):
     phone_number = String()
     address = String()
 
+class UserDistributionOutput(graphene.ObjectType):
+    patient_count = graphene.Int()
+    doctor_count = graphene.Int()
+    lab_count = graphene.Int()
+    admin_count = graphene.Int()
+
+class PlatformUsageOutput(graphene.ObjectType):
+    date = graphene.String()
+    consultations = graphene.Int()
+    prescriptions = graphene.Int()
+    test_results = graphene.Int()
+
+class RecentActivityOutput(graphene.ObjectType):
+    id = graphene.ID()
+    type = graphene.String()
+    name = graphene.String()
+    created_at = graphene.DateTime()
 # Output for Patient
 class PatientOutput(BaseProfileOutput):
     id = ID()

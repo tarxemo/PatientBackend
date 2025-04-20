@@ -14,7 +14,8 @@ class CustomUser(AbstractUser):
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
     is_verified = models.BooleanField(default=False)
-    is_online = models.BooleanField(default=True)  # Track online status
+    is_online = models.BooleanField(default=True)  # Track online statu
+    is_active = models.BooleanField(default=True)
     user_type = models.CharField(
         max_length=20,
         choices=USER_TYPE_CHOICES,
