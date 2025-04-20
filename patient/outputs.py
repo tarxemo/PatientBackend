@@ -12,16 +12,16 @@ class BaseProfileOutput(ObjectType):
     address = String()
 
 # Output for Patient
+# output.py
 class PatientOutput(BaseProfileOutput):
     id = ID()
     date_of_birth = Date()
     gender = String()
     medical_history = String()
-    user = Field(lambda: CustomUserOutput)  # Assuming you have a CustomUserOutput
+    user = Field(lambda: CustomUserOutput)
 
     def resolve_user(self, info):
         return self.user
-
 # Output for Doctor
 class DoctorOutput(BaseProfileOutput):
     id = ID()
@@ -131,3 +131,72 @@ class PrescriptionOutput(DjangoObjectType):
 
     def resolve_consultation(self, info):
         return self.consultation
+    
+
+#tesrresult
+
+class TestResultOutput(graphene.ObjectType):
+    id = graphene.ID()
+    prescribed_test = graphene.Field('patient.schema.PrescribedTestOutput')
+    laboratory = graphene.Field('patient.schema.LaboratoryOutput')
+    result_file_url = graphene.String()
+    notes = graphene.String()
+    uploaded_at = graphene.DateTime()
+
+    def resolve_result_file_url(self, info):
+        if self.result_file:
+            return info.context.build_absolute_uri(self.result_file.url)
+        return None
+    
+
+#new
+
+# output.py
+import graphene
+from graphene_django.types import DjangoObjectType
+from .models import Doctor, LabTech, Laboratory, Symptom, Disease, Consultation, MedicalTest, PrescribedTest, TestResult
+
+class DoctorType(DjangoObjectType):
+    class Meta:
+        model = Doctor
+
+class LabTechType(DjangoObjectType):
+    user = graphene.Field(lambda: CustomUserOutput)
+
+    class Meta:
+        model = LabTech
+
+    def resolve_user(self, info):
+        return self.user
+
+class LaboratoryType(DjangoObjectType):
+    class Meta:
+        model = Laboratory
+
+class SymptomType(DjangoObjectType):
+    class Meta:
+        model = Symptom
+
+class DiseaseType(DjangoObjectType):
+    class Meta:
+        model = Disease
+
+class ConsultationType(DjangoObjectType):
+    class Meta:
+        model = Consultation
+
+class MedicalTestType(DjangoObjectType):
+    class Meta:
+        model = MedicalTest
+
+class PrescribedTestType(DjangoObjectType):
+    class Meta:
+        model = PrescribedTest
+
+class TestResultType(DjangoObjectType):
+    class Meta:
+        model = TestResult
+
+class MedicalTestType(DjangoObjectType):
+    class Meta:
+        model = MedicalTest

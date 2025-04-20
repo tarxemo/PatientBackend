@@ -5,11 +5,7 @@ from .models import (
     Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
     MedicalTest, PrescribedTest, TestResult, Prescription
 )
-from .outputs import (
-    PatientOutput, DoctorOutput, LaboratoryOutput, SymptomOutput, DiseaseOutput,
-    ConsultationOutput, MedicalTestOutput, PrescribedTestOutput, TestResultOutput, PrescriptionOutput
-)
-
+from .outputs import  *
 # Query to fetch a single Patient by ID
 class PatientQuery(ObjectType):
     patient = Field(PatientOutput, id=ID(required=True))
@@ -166,3 +162,53 @@ class PatientQuery(ObjectType):
 
     def resolve_prescriptions_by_consultation(self, info, consultation_id):
         return Prescription.objects.filter(consultation_id=consultation_id)
+
+# Query to fetch medical tests 
+
+    all_medical_tests = graphene.List(MedicalTestType)
+    medical_test = graphene.Field(MedicalTestType, id=graphene.ID(required=True))
+
+    def resolve_all_medical_tests(self, info):
+        return MedicalTest.objects.all()
+
+    def resolve_medical_test(self, info, id):
+        try:
+            return MedicalTest.objects.get(pk=id)
+        except MedicalTest.DoesNotExist:
+            return None
+            
+
+
+#new
+
+# schema.py (queries)
+import graphene
+from .outputs import *
+from .views import *
+from .models import *
+
+class Query(graphene.ObjectType):
+    all_doctors = graphene.List(DoctorType)
+    doctor = graphene.Field(DoctorType, id=graphene.ID(required=True))
+    all_labtechs = graphene.List(LabTechType)
+    labtech = graphene.Field(LabTechType, id=graphene.ID(required=True))
+    all_laboratories = graphene.List(LaboratoryType)
+    laboratory = graphene.Field(LaboratoryType, id=graphene.ID(required=True))
+
+    def resolve_all_doctors(self, info):
+        return Doctor.objects.all()
+
+    def resolve_doctor(self, info, id):
+        return Doctor.objects.get(pk=id)
+
+    def resolve_all_labtechs(self, info):
+        return LabTech.objects.all()
+
+    def resolve_labtech(self, info, id):
+        return LabTech.objects.get(pk=id)
+
+    def resolve_all_laboratories(self, info):
+        return Laboratory.objects.all()
+
+    def resolve_laboratory(self, info, id):
+        return Laboratory.objects.get(pk=id)

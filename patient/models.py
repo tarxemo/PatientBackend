@@ -94,7 +94,7 @@ class MedicalTest(models.Model):
 # Prescribed Test Model
 class PrescribedTest(models.Model):
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE, related_name='prescribed_tests')
-    test = models.ForeignKey(MedicalTest, on_delete=models.CASCADE)
+    test = models.ManyToManyField(MedicalTest, related_name="medicat_tests")
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
