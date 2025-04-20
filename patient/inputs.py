@@ -29,6 +29,9 @@ class LaboratoryInput(BaseProfileInput):
     lab_name = String(required=True)
     accreditation_number = String(required=True)
     location = String(required=True)
+    email=String(required=True)
+    description=String()
+    
 
 # Input for Symptom
 class SymptomInput(InputObjectType):

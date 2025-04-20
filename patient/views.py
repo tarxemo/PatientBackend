@@ -1,3 +1,4 @@
+from authApp.decorators import login_required_resolver
 import graphene
 from graphene import Mutation, String, Int, Float, Boolean, Date, DateTime, ID, List, Field
 from .models import (
@@ -109,7 +110,8 @@ class CreateOrUpdateLaboratory(Mutation):
         input = LaboratoryInput(required=True)
 
     laboratory = Field(LaboratoryOutput)
-
+    
+    @login_required_resolver
     def mutate(self, info, input):
         user = info.context.user
         laboratory, created = Laboratory.objects.update_or_create(
