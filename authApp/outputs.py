@@ -10,6 +10,8 @@ class CustomUserOutput(ObjectType):
     user_type = graphene.String()
     phone_number = graphene.String()
     address = graphene.String()
+    first_name = graphene.String()
+    last_name = graphene.String()
     profile_picture = graphene.String()
     date_of_birth = graphene.Date()
     is_verified = graphene.Boolean()
