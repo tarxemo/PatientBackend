@@ -159,7 +159,7 @@ from rest_framework.views import APIView
 from patient.models import Disease  # Assuming Disease model exists
 
 # Load Whisper speech-to-text model
-whisper_model = whisper.load_model("large")
+# whisper_model = whisper.load_model("large")
 
 # Load disease prediction model and necessary files
 disease_model = joblib.load('disease_prediction_model.pkl')

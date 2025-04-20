@@ -13,6 +13,53 @@ from .outputs import (
     ConsultationOutput, MedicalTestOutput, PrescribedTestOutput, TestResultOutput, PrescriptionOutput
 )
 
+import joblib
+import os
+from django.conf import settings
+
+# Load model and vectorizer once
+MODEL_PATH = os.path.join(settings.BASE_DIR, 'ai', 'model', 'disease_prediction_model.pkl')
+VECTORIZER_PATH = os.path.join(settings.BASE_DIR, 'ai', 'model', 'tfidf_vectorizer.pkl')
+
+model = joblib.load(MODEL_PATH)
+vectorizer = joblib.load(VECTORIZER_PATH)
+from graphene import ObjectType, Float
+
+class DiseasePredictionType(ObjectType):
+    disease = graphene.String()
+    probability = graphene.Float()
+
+class PredictDisease(graphene.Mutation):
+    class Arguments:
+        symptoms = graphene.String(required=True)
+
+    # Change from single String to list of DiseasePredictionType
+    predictions = graphene.List(DiseasePredictionType)
+
+    def mutate(self, info, symptoms):
+        # Transform input
+        vector = vectorizer.transform([symptoms])
+        
+        # Get all probabilities
+        probabilities = model.predict_proba(vector)[0]
+        
+        # Get the indices of top 3 probabilities
+        top3_indices = probabilities.argsort()[-3:][::-1]
+        
+        # Get class names from the model
+        classes = model.classes_
+        
+        # Prepare predictions with disease names and probabilities
+        predictions = [
+            {
+                "disease": classes[i],
+                "probability": float(probabilities[i])
+            }
+            for i in top3_indices
+        ]
+        
+        return PredictDisease(predictions=predictions)
+
 # Mutation to create/update a Patient
 class CreateOrUpdatePatient(Mutation):
     class Arguments:
@@ -203,6 +250,7 @@ class PatientMutation(graphene.ObjectType):
     prescribe_test = PrescribeTest.Field()
     upload_test_result = UploadTestResult.Field()
     create_or_update_prescription = CreateOrUpdatePrescription.Field()
+    predict_disease = PredictDisease.Field()
 
 
 
