@@ -134,17 +134,8 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
 DATABASES = {
     'default': {
-<<<<<<< HEAD
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'patient',
-        'USER': 'martin',
-        'PASSWORD': '@Martin12',
-        'HOST': 'localhost',
-        'PORT': '5432'
-=======
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
->>>>>>> mac
     }
 }
 
