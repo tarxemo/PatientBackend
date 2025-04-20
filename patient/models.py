@@ -44,7 +44,10 @@ class Laboratory(BaseProfile):
     lab_tech = models.ForeignKey(LabTech, on_delete=models.CASCADE, null=True, blank=True)
     lab_name = models.CharField(max_length=100)
     accreditation_number = models.CharField(max_length=50, unique=True)
+    email = models.CharField(max_length=100, default='voicepowered@lab.com')
     location = models.CharField(max_length=255)
+    description = models.CharField(max_length=1000, default="Ready to Serve you at best standards")
+    created_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Lab: {self.lab_name}"

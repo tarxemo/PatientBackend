@@ -41,7 +41,7 @@ class LaboratoryOutput(BaseProfileOutput):
     accreditation_number = String()
     location = String()
     user = Field(lambda: CustomUserOutput)
-
+    created_at=Date()
     def resolve_user(self, info):
         return self.user
 
