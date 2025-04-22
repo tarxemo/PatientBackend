@@ -80,7 +80,7 @@ class TestResultInput(InputObjectType):
 # Input for Prescription
 class PrescriptionInput(InputObjectType):
     consultation = ID(required=True)  # Consultation ID
-    medication = String(required=True)
+    # medication = String(required=True)
     dosage = String(required=True)
     instructions = String()
 
@@ -183,3 +183,19 @@ class TestResultInput(graphene.InputObjectType):
     result_file = graphene.String()  # path or base64 string depending on setup
     notes = graphene.String()
 
+
+# schema/inputs.py
+import graphene
+from graphene_django.types import DjangoObjectType
+from .models import TestOrder
+
+class TestOrderInput(graphene.InputObjectType):
+    test_type_id = graphene.ID(required=True)
+    patient_id = graphene.ID(required=True)
+    priority = graphene.String()
+    status = graphene.String()
+
+class TestOrderUpdateInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+    priority = graphene.String()
+    status = graphene.String()

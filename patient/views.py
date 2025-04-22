@@ -589,16 +589,42 @@ class CreatePrescribedTest(graphene.Mutation):
     
     @staticmethod
     def mutate(root, info, input):
-        prescribed_test = PrescribedTest(
-            consultation_id=input.consultation_id,
-            notes=input.notes
-        )
-        prescribed_test.save()
-        
-        if input.test_ids:
-            prescribed_test.test.set(input.test_ids)
-            
-        return CreatePrescribedTest(prescribed_test=prescribed_test)
+        try:
+            # Convert IDs to integers
+            consultation_id = int(input.consultation_id)
+            consultation = Consultation.objects.get(id=consultation_id)
+
+            # Handle test_ids (list or single value)
+            test_ids = (
+                [int(tid) for tid in input.test_ids] 
+                if isinstance(input.test_ids, list)
+                else [int(input.test_ids)]
+            )
+
+            # Validate tests exist
+            tests = MedicalTest.objects.filter(id__in=test_ids)
+            if tests.count() != len(test_ids):
+                missing_ids = set(test_ids) - set(tests.values_list('id', flat=True))
+                raise Exception(f"Invalid Test IDs: {missing_ids}")
+
+            # Create PrescribedTest
+            prescribed_test = PrescribedTest.objects.create(
+                consultation=consultation,
+                notes=input.notes
+            )
+            prescribed_test.test.set(tests)
+
+            return CreatePrescribedTest(prescribed_test=prescribed_test)
+
+        except Consultation.DoesNotExist:
+            raise Exception(f"Consultation ID {input.consultation_id} does not exist")
+        except ValueError:
+            raise Exception("Invalid ID format - must be integer values")
+        except Exception as e:
+            raise Exception(f"Error: {str(e)}")
+
+
+
 
 class CreateTestResult(graphene.Mutation):
     class Arguments:
@@ -625,10 +651,11 @@ class CreatePrescription(graphene.Mutation):
     prescription = graphene.Field(PrescriptionOutput)
     
     @staticmethod
+    @staticmethod
     def mutate(root, info, input):
         prescription = Prescription(
-            consultation_id=input.consultation_id,
-            medication=input.medication,
+            consultation_id=input.consultation,  # ✅ fixed here
+            # medication=input.medication,
             dosage=input.dosage,
             instructions=input.instructions
         )
@@ -801,10 +828,78 @@ class DeleteConsultation(graphene.Mutation):
 
 # Add similar delete mutations for other models...
 
+
+
+ # schema/mutations.py
+import graphene
+from graphql import GraphQLError
+from django.utils import timezone
+from .models import TestOrder
+from .inputs import TestOrderInput, TestOrderUpdateInput
+import uuid
+
+class CreateTestOrder(graphene.Mutation):
+    class Arguments:
+        input = TestOrderInput(required=True)
+
+    test_order = graphene.Field(TestOrderType)
+
+    @staticmethod
+    def mutate(root, info, input):
+        # Generate a unique order ID
+        order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        
+        test_order = TestOrder(
+            order_id=order_id,  # Add this line
+            test_type_id=input.test_type_id,
+            patient_id=input.patient_id,
+            priority=input.priority or 'normal',
+            status=input.status or 'pending',
+            received_time=timezone.now()
+        )
+        test_order.save()
+        return CreateTestOrder(test_order=test_order)
+class UpdateTestOrder(graphene.Mutation):
+    class Arguments:
+        input = TestOrderUpdateInput(required=True)
+
+    test_order = graphene.Field(TestOrderType)
+
+    @staticmethod
+    def mutate(root, info, input):
+        try:
+            test_order = TestOrder.objects.get(id=input.id)
+            if input.priority:
+                test_order.priority = input.priority
+            if input.status:
+                test_order.status = input.status
+            test_order.save()
+            return UpdateTestOrder(test_order=test_order)
+        except TestOrder.DoesNotExist:
+            raise GraphQLError('TestOrder not found')
+
+class DeleteTestOrder(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @staticmethod
+    def mutate(root, info, id):
+        try:
+            test_order = TestOrder.objects.get(id=id)
+            test_order.delete()
+            return DeleteTestOrder(success=True)
+        except TestOrder.DoesNotExist:
+            raise GraphQLError('TestOrder not found')
+ 
 class PatientMutation(graphene.ObjectType):
 
     #new
-    
+    create_test_order = CreateTestOrder.Field()
+    update_test_order = UpdateTestOrder.Field()
+    delete_test_order = DeleteTestOrder.Field()
+
     create_doctor = CreateDoctor.Field()
     update_doctor = UpdateDoctor.Field()
     delete_doctor = DeleteDoctor.Field()

@@ -101,9 +101,14 @@ class PrescribedTest(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"Prescribed Test: {self.test.name} for {self.consultation.patient.user.get_full_name()}"
+        test_names = ", ".join(test.name for test in self.test.all())
+        patient_name = self.consultation.patient.user.get_full_name() if self.consultation and self.consultation.patient else "Unknown"
+        return f"Prescribed Test: {test_names} for {patient_name}"
 
 # Test Result Model
+
+
+
 class TestResult(models.Model):
     prescribed_test = models.OneToOneField(PrescribedTest, on_delete=models.CASCADE, related_name='test_result')
     laboratory = models.ForeignKey(Laboratory, on_delete=models.CASCADE, related_name='test_results')
@@ -148,3 +153,34 @@ class Appointment(models.Model):
 
     class Meta:
         ordering = ['date_time'] 
+
+
+
+
+from django.db import models
+from django.utils import timezone
+
+class TestOrder(models.Model):
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('normal', 'Normal'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    order_id = models.CharField(max_length=20, unique=True)
+    test_type = models.ForeignKey(MedicalTest, on_delete=models.CASCADE, related_name='orders')
+    patient = models.ForeignKey('Patient', on_delete=models.CASCADE, related_name='test_orders')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
+    received_time = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Order #{self.order_id} - {self.test_type.name} for {self.patient.user.get_full_name()}"

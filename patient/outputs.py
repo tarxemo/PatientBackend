@@ -3,7 +3,7 @@ from graphene import ObjectType, String, Int, Float, Boolean, Date, DateTime, ID
 from graphene_django.types import DjangoObjectType 
 from .models import (
     Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
-    MedicalTest, PrescribedTest, TestResult, Prescription
+    MedicalTest, PrescribedTest, TestOrder, TestResult, Prescription
 )
 from authApp.outputs import CustomUserOutput
 # Output for BaseProfile (abstract model)
@@ -144,7 +144,7 @@ class PrescriptionOutput(DjangoObjectType):
 
     class Meta:
         model = Prescription
-        fields = ("id", "consultation", "medication", "dosage", "instructions", "prescribed_at")
+        fields = ("id", "consultation", "dosage", "instructions", "prescribed_at")
 
     def resolve_consultation(self, info):
         return self.consultation
@@ -210,6 +210,12 @@ class PrescribedTestType(DjangoObjectType):
     class Meta:
         model = PrescribedTest
 
+    test = graphene.List(MedicalTestType)
+
+    def resolve_test(self, info):
+        return self.test.all()
+
+
 class TestResultType(DjangoObjectType):
     class Meta:
         model = TestResult
@@ -237,3 +243,32 @@ class RecentActivityOutput(graphene.ObjectType):
     type = graphene.String()
     name = graphene.String()
     created_at = graphene.DateTime()
+
+class TestOrderType(DjangoObjectType):
+    class Meta:
+        model = TestOrder
+        fields = "__all__"
+    
+    # Use your existing PatientOutput instead of PatientType
+    patient = graphene.Field(PatientOutput)
+    
+    # Add display fields for enum choices
+    priority_display = graphene.String()
+    status_display = graphene.String()
+
+    def resolve_priority_display(self, info):
+        return self.get_priority_display()
+
+    def resolve_status_display(self, info):
+        return self.get_status_display()
+
+    # Explicit patient resolver (optional)
+    def resolve_patient(self, info):
+        return self.patient
+ 
+    
+    # Add this if you want to resolve the patient efficiently
+    def resolve_patient(self, info):
+        # This will be automatically handled by DjangoObjectType,
+        # but we're being explicit here for clarity
+        return self.patient
