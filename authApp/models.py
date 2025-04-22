@@ -4,6 +4,8 @@ from django.contrib.auth.models import AbstractUser
 class CustomUser(AbstractUser):
     PHONE_NUMBER_MAX_LENGTH = 15
     USER_TYPE_CHOICES = [
+
+        ('admin', 'Admin'),
         ('doctor', 'Doctor'),
         ('patient', 'Patient'),
         ('lab_technician', 'Lab Technician'),

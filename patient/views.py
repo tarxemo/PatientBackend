@@ -317,6 +317,85 @@ class CreateTestResult(Mutation):
 
 
 
+import graphene
+from graphene_django.types import DjangoObjectType
+from .models import Appointment, Patient, Doctor
+from .inputs import AppointmentInput
+from .outputs import AppointmentOutput
+
+# Mutation for creating appointments
+class CreateAppointment(graphene.Mutation):
+    class Arguments:
+        input = AppointmentInput(required=True)
+
+    appointment = graphene.Field(AppointmentOutput)
+
+    @login_required_resolver
+    def mutate(self, info, input): 
+        doctor_id = input.doctor
+
+        # Fetch related Patient and Doctor instances
+        doctor = Doctor.objects.get(id=doctor_id)
+
+        # Create the Appointment instance
+        appointment = Appointment(
+            patient=Patient.objects.get(user__id =  info.context.user.id),
+            doctor=doctor,
+            date_time=input.get('date_time'),
+            location=input.get('location'),
+            status=input.get('status', 'scheduled'),
+            notes=input.get('notes', '')
+        )
+        appointment.save()
+
+        return CreateAppointment(appointment=appointment)
+
+# Mutation for updating appointments
+class UpdateAppointment(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        input = AppointmentInput(required=True)
+
+    appointment = graphene.Field(AppointmentOutput)
+
+    def mutate(self, info, id, input):
+        try:
+            appointment = Appointment.objects.get(id=id)
+        except Appointment.DoesNotExist:
+            raise Exception("Appointment not found")
+
+        # Update fields
+        if 'patient' in input:
+            appointment.patient = Patient.objects.get(id=input['patient'])
+        if 'doctor' in input:
+            appointment.doctor = Doctor.objects.get(id=input['doctor'])
+        if 'date_time' in input:
+            appointment.date_time = input['date_time']
+        if 'location' in input:
+            appointment.location = input['location']
+        if 'status' in input:
+            appointment.status = input['status']
+        if 'notes' in input:
+            appointment.notes = input['notes']
+
+        appointment.save()
+
+        return UpdateAppointment(appointment=appointment)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -776,6 +855,10 @@ class PatientMutation(graphene.ObjectType):
     create_medical_test = CreateMedicalTest.Field()
     update_medical_test = UpdateMedicalTest.Field()
     delete_medical_test = DeleteMedicalTest.Field()
+
+
+    create_appointment = CreateAppointment.Field()
+    update_appointment = UpdateAppointment.Field()
 
 
 

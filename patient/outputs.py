@@ -1,6 +1,6 @@
 import graphene
 from graphene import ObjectType, String, Int, Float, Boolean, Date, DateTime, ID, List, Field
-from graphene_django.types import DjangoObjectType
+from graphene_django.types import DjangoObjectType 
 from .models import (
     Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
     MedicalTest, PrescribedTest, TestResult, Prescription
@@ -12,6 +12,23 @@ class BaseProfileOutput(ObjectType):
     address = String()
 
 # Output for Patient
+
+ # Import if needed for nested types
+
+class AppointmentOutput(ObjectType):
+    id = ID()
+    # patient = Field(lambda: PatientOutput)  # Assuming you have a PatientOutput
+    doctor = Field(lambda: DoctorOutput)  # Assuming you have a DoctorOutput
+    date_time = DateTime()
+    location = String()
+    status = String()
+    notes = String()
+
+    # def resolve_patient(self, info):
+    #     return self.patient
+
+    def resolve_doctor(self, info):
+        return self.doctor
 # output.py
 class PatientOutput(BaseProfileOutput):
     id = ID()
@@ -200,3 +217,23 @@ class TestResultType(DjangoObjectType):
 class MedicalTestType(DjangoObjectType):
     class Meta:
         model = MedicalTest
+
+
+# Output Types for Analytics
+class UserDistributionOutput(graphene.ObjectType):
+    patient_count = graphene.Int()
+    doctor_count = graphene.Int()
+    lab_count = graphene.Int()
+    admin_count = graphene.Int()
+
+class PlatformUsageOutput(graphene.ObjectType):
+    date = graphene.String()
+    consultations = graphene.Int()
+    prescriptions = graphene.Int()
+    test_results = graphene.Int()
+
+class RecentActivityOutput(graphene.ObjectType):
+    id = graphene.ID()
+    type = graphene.String()
+    name = graphene.String()
+    created_at = graphene.DateTime()

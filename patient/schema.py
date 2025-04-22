@@ -176,6 +176,35 @@ class PatientQuery(ObjectType):
             return MedicalTest.objects.get(pk=id)
         except MedicalTest.DoesNotExist:
             return None
+        
+
+
+
+
+
+
+# Query for fetching appointments
+    all_appointments = graphene.List(AppointmentOutput)
+    appointment_by_id = graphene.Field(AppointmentOutput, id=graphene.ID(required=True))
+
+    def resolve_all_appointments(self, info):
+        return Appointment.objects.all()
+
+    def resolve_appointment_by_id(self, info, id):
+        try:
+            return Appointment.objects.get(id=id)
+        except Appointment.DoesNotExist:
+            return None
+
+
+
+
+
+
+
+
+
+
             
 
 
