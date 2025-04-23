@@ -6,6 +6,9 @@ from .models import *
 class CustomUserOutput(ObjectType):
     id = graphene.ID()
     username = graphene.String()
+
+    first_name =graphene.String()
+    last_name = graphene.String()
     email = graphene.String()
     user_type = graphene.String()
     phone_number = graphene.String()

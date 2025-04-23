@@ -5,10 +5,13 @@ from .models import (
     Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
     MedicalTest, PrescribedTest, TestResult, Prescription
 )
-from .outputs import (
-    PatientOutput, DoctorOutput, LaboratoryOutput, SymptomOutput, DiseaseOutput,
-    ConsultationOutput, MedicalTestOutput, PrescribedTestOutput, TestResultOutput, PrescriptionOutput
-)
+from .outputs import  *
+
+from graphene_django.filter import DjangoFilterConnectionField
+
+
+
+
 
 # Query to fetch a single Patient by ID
 class PatientQuery(ObjectType):
@@ -166,3 +169,92 @@ class PatientQuery(ObjectType):
 
     def resolve_prescriptions_by_consultation(self, info, consultation_id):
         return Prescription.objects.filter(consultation_id=consultation_id)
+
+# Query to fetch medical tests 
+
+    all_medical_tests = graphene.List(MedicalTestType)
+    medical_test = graphene.Field(MedicalTestType, id=graphene.ID(required=True))
+
+    def resolve_all_medical_tests(self, info):
+        return MedicalTest.objects.all()
+
+    def resolve_medical_test(self, info, id):
+        try:
+            return MedicalTest.objects.get(pk=id)
+        except MedicalTest.DoesNotExist:
+            return None
+
+
+#new
+
+ 
+
+    all_doctors = graphene.List(DoctorType)
+    doctor = graphene.Field(DoctorType, id=graphene.ID(required=True))
+    all_labtechs = graphene.List(LabTechType)
+    labtech = graphene.Field(LabTechType, id=graphene.ID(required=True))
+    all_laboratories = graphene.List(LaboratoryType)
+    laboratory = graphene.Field(LaboratoryType, id=graphene.ID(required=True))
+
+ 
+
+    def resolve_all_doctors(self, info):
+        return Doctor.objects.all()
+
+    def resolve_doctor(self, info, id):
+        return Doctor.objects.get(pk=id)
+
+    def resolve_all_labtechs(self, info):
+        return LabTech.objects.all()
+
+    def resolve_labtech(self, info, id):
+        return LabTech.objects.get(pk=id)
+
+    def resolve_all_laboratories(self, info):
+        return Laboratory.objects.all()
+
+    def resolve_laboratory(self, info, id):
+        return Laboratory.objects.get(pk=id)
+
+
+# Query definitions
+    test_order = graphene.Field(TestOrderType, id=graphene.ID(required=True))
+    all_test_orders = graphene.List(TestOrderType)
+    test_orders_by_status = graphene.List(
+        TestOrderType,
+        status=graphene.String(required=False)
+    )
+    test_orders_by_patient = graphene.List(
+        TestOrderType,
+        patient_id=graphene.ID(required=True)
+    )
+
+    # Resolvers
+    def resolve_test_order(self, info, id):
+        return TestOrder.objects.get(id=id)
+
+    def resolve_all_test_orders(self, info, **kwargs):
+        return TestOrder.objects.all()
+
+    def resolve_test_orders_by_status(self, info, status=None):
+        if status:
+            return TestOrder.objects.filter(status=status.lower())
+        return TestOrder.objects.all()
+
+    def resolve_test_orders_by_patient(self, info, patient_id):
+        return TestOrder.objects.filter(patient_id=patient_id)
+    
+    test_orders = graphene.List(TestOrderType)
+    
+    def resolve_test_orders(self, info):
+        return TestOrder.objects.all()
+    
+    def resolve_test_order(self, info, id):
+        # Use select_related to optimize patient queries
+        return TestOrder.objects.select_related('patient').get(id=id)
+
+    def resolve_all_test_orders(self, info):
+        # Use select_related to optimize patient queries
+        return TestOrder.objects.select_related('patient').all()
+
+# Create schema instance

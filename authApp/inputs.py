@@ -3,6 +3,8 @@ from graphene import InputObjectType
 
 class UserInput(InputObjectType):
     username = graphene.String(required=True)
+    first_name =graphene.String()
+    last_name = graphene.String()
     email = graphene.String(required=True)
     password = graphene.String(required=True)
     user_type = graphene.String()
@@ -16,6 +18,8 @@ class UserInput(InputObjectType):
 # Define Input Type
 class UserUpdateInput(InputObjectType):
     username = graphene.String()
+    first_name =graphene.String()
+    last_name = graphene.String()
     email = graphene.String()
     user_type = graphene.String()
     phone_number = graphene.String()
