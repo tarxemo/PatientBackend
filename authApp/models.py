@@ -5,6 +5,7 @@ class CustomUser(AbstractUser):
     PHONE_NUMBER_MAX_LENGTH = 15
     USER_TYPE_CHOICES = [
         ('doctor', 'Doctor'),
+        ('admin', 'Admin'),
         ('patient', 'Patient'),
         ('lab_technician', 'Lab Technician'),
     ]

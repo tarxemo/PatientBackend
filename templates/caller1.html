@@ -149,18 +149,57 @@
                     </div>
                 </section>
 
+                <!-- Call Interface (Hidden by default) -->
+                <div id="call-interface" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <!-- Call Header -->
+                        <div class="bg-blue-600 text-white p-6 text-center">
+                            <div id="call-status" class="text-xl font-semibold">Calling Dr. Smith...</div>
+                            <div id="call-duration" class="text-sm opacity-80 mt-1">00:00</div>
+                        </div>
+                        
+                        <!-- Call Content -->
+                        <div class="p-6">
+                            <!-- Doctor Info -->
+                            <div class="flex flex-col items-center mb-6">
+                                <div class="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                                    <i class="fas fa-user-md text-blue-600 text-3xl"></i>
+                                </div>
+                                <h3 id="call-doctor-name" class="font-bold text-gray-800 text-lg">Dr. {{ doctor.user.get_full_name }}</h3>
+                                <p class="text-blue-600">{{ doctor.specialization }}</p>
+                            </div>
+                            
+                            <!-- Audio Visualization -->
+                            <div class="waveform flex justify-center mb-8">
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                            </div>
+                            
+                            <!-- Call Controls -->
+                            <div class="flex justify-center space-x-6">
+                                <button id="mute-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                    <i class="fas fa-microphone text-gray-700"></i>
+                                </button>
+                                <button id="end-call" class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-phone-slash text-white"></i>
+                                </button>
+                                <button id="speaker-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                    <i class="fas fa-volume-up text-gray-700"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Incoming Call Modal (Hidden by default) -->
-                <div id="incoming-call" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div id="incoming-call-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
                         <div class="bg-green-600 text-white p-6 text-center">
                             <h3 class="text-xl font-semibold">Incoming Call</h3>
                             <p id="incoming-caller" class="mt-1">From Dr. Smith</p>
-                        </div>
-                        
-                        <!-- Call Header -->
-                        <div class="bg-green-600 text-white p-6 text-center">
-                            <div id="call-status" class="text-xl font-semibold">Calling Dr. Smith...</div>
-                            <div id="call-duration" class="text-sm opacity-80 mt-1">00:00</div>
                         </div>
                         
                         <div class="p-6">
@@ -172,33 +211,12 @@
                                 <p class="text-gray-600">Cardiologist</p>
                             </div>
                             
-                            
-                            <!-- Audio Visualization -->
-                            <div class="waveform flex justify-center mb-8">
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                            </div>
-
-                            <canvas id="audio-visualization" width="1" height="1" style="display:none"></canvas>
-
-
-                            
-                            <!-- Call Controls -->
                             <div class="flex justify-center space-x-6">
-                                <button id="mute-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
-                                    <i class="fas fa-microphone text-gray-700"></i>
-                                </button>
-                                <button id="end-call" onclick="endCall()"  class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
+                                <button onclick="rejectCall()" class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
                                     <i class="fas fa-phone-slash text-white"></i>
                                 </button>
-                                <button  id="accept-call" onclick="acceptCall()" class="w-14 h-14 rounded-full bg-green-600 flex items-center justify-center hover:bg-green-700 transition-colors">
+                                <button onclick="acceptCall()" class="w-14 h-14 rounded-full bg-green-600 flex items-center justify-center hover:bg-green-700 transition-colors">
                                     <i class="fas fa-phone-alt text-white"></i>
-                                </button>
-                                <button id="speaker-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
-                                    <i class="fas fa-volume-up text-gray-700"></i>
                                 </button>
                             </div>
                         </div>
@@ -219,101 +237,36 @@
     <!-- Hidden Audio Element -->
     <audio id="remoteAudio" autoplay class="hidden"></audio>
 
-
+    <!-- WebSocket and WebRTC Script -->
     <script>
         const userId = "{{ request.user.id }}";
         const username = "{{ request.user.username }}";
+        const diseaseName = "{{ disease.name }}";
         const socket = new WebSocket((window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws/call/");
-        //const socket = new WebSocket("wss://40f7-154-74-190-8.ngrok-free.app/ws/call/");
+        
         let peerConnection;
         let localStream;
-
-        // Audio Visualization
-        const canvas = document.getElementById("audio-visualization");
-        const canvasCtx = canvas.getContext("2d");
-
-        const incomingCallModal = document.getElementById('incoming-call');
-        const incomingCaller = document.getElementById('incoming-caller');
-        const muteButton = document.getElementById('mute-button');
-        const speakerButton = document.getElementById('speaker-button');
-        const endCallButton = document.getElementById('end-call');
-        const callDuration = document.getElementById('call-duration');
-        const callStatus = document.getElementById('call-status');
-
-        let audioContext;
-        let analyser;
-        let source;
         let callStartTime;
         let callTimer;
-
         const configuration = {
             iceServers: [
-                { urls: "stun:stun.l.google.com:19302" }, // Google's public STUN server
-                // Add TURN server here if needed (e.g., for restrictive networks)
+                { urls: "stun:stun.l.google.com:19302" },
+                // Add TURN server here if needed
             ]
         };
 
-        // Show incoming call modal
-        function showIncomingCall(callerName, callerId) {
-            incomingCaller.textContent = `From ${callerName}`;
-            window.callerId = callerId;
-            incomingCallModal.classList.remove('hidden');
-            callStatus.textContent =  "Calling...";
-        }
+        // DOM Elements
+        const callInterface = document.getElementById('call-interface');
+        const incomingCallModal = document.getElementById('incoming-call-modal');
+        const callStatus = document.getElementById('call-status');
+        const callDuration = document.getElementById('call-duration');
+        const callDoctorName = document.getElementById('call-doctor-name');
+        const incomingCaller = document.getElementById('incoming-caller');
+        const muteButton = document.getElementById('mute-button');
+        const endCallButton = document.getElementById('end-call');
+        const speakerButton = document.getElementById('speaker-button');
+        const remoteAudio = document.getElementById('remoteAudio');
 
-        function hideIncomingCall() {
-            incomingCallModal.classList.add('hidden');
-        }
-
-        speakerButton.addEventListener('click', () => {
-            // Note: This may not work on all browsers due to security restrictions
-            remoteAudio.volume = remoteAudio.volume === 1 ? 0.5 : 1;
-            speakerButton.innerHTML = remoteAudio.volume === 1 ? 
-                '<i class="fas fa-volume-up"></i>' : 
-                '<i class="fas fa-volume-down"></i>';
-        });
-        endCallButton.addEventListener('click', rejectCall);
-               // Event listeners for call controls
-               muteButton.addEventListener('click', () => {
-                if (localStream) {
-                    const audioTracks = localStream.getAudioTracks();
-                    audioTracks.forEach(track => {
-                        track.enabled = !track.enabled;
-                        muteButton.innerHTML = track.enabled ? 
-                            '<i class="fas fa-microphone"></i>' : 
-                            '<i class="fas fa-microphone-slash"></i>';
-                    });
-                }
-            });
-
-                // End the current call
-                function endCall() {
-                    socket.send(JSON.stringify({
-                        action: "end_call",
-                        target_user: window.callerId || window.targetUserId
-                    }));
-                    resetWebRTC();
-                    hideIncomingCall();
-                    stopCallTimer();
-                }
-                // Start call timer
-                function startCallTimer() {
-                    callStartTime = new Date();
-                    callTimer = setInterval(() => {
-                        const now = new Date();
-                        const duration = Math.floor((now - callStartTime) / 1000);
-                        const minutes = Math.floor(duration / 60).toString().padStart(2, '0');
-                        const seconds = (duration % 60).toString().padStart(2, '0');
-                        callDuration.textContent = `${minutes}:${seconds}`;
-                    }, 1000);
-                }
-                        // Stop call timer
-        function stopCallTimer() {
-            if (callTimer) {
-                clearInterval(callTimer);
-                callTimer = null;
-            }
-        }
         // WebSocket message handler
         socket.onmessage = function(event) {
             const data = JSON.parse(event.data);
@@ -322,309 +275,293 @@
             switch (data.action) {
                 case "incoming_call":
                     showIncomingCall(data.caller_name, data.caller_id);
-                    if(window.initiator === username){
-                        window.callerId = data.caller_id;
-                        window.callerUsername = data.caller_name;
-                        acceptCall();
-                    }else{
-                        window.callerId = data.caller_id;
-                        window.callerUsername = data.caller_name;
-                    }
                     break;
-
                 case "call_accepted":
-                    startWebRTC(true); // Start WebRTC as the caller
+                    startWebRTC(true);
+                    showCallInterface(data.callee_name, true);
                     break;
-
                 case "call_rejected":
-                    hideIncomingCall();
+                    alert(`${data.callee_name} rejected your call.`);
+                    hideCallInterface();
                     break;
-
                 case "offer":
                     handleOffer(data.offer);
                     break;
-
                 case "answer":
                     handleAnswer(data.answer);
                     break;
-
                 case "ice_candidate":
                     handleNewICECandidate(data.candidate);
                     break;
-
+                case "call_ended":
+                    alert(`Call ended by ${data.by_user}.`);
+                    endCall();
+                    break;
                 default:
                     console.warn("Unknown action:", data.action);
             }
         };
 
-        // Call a user
+        // Call a doctor
         async function callUser(targetUserId, targetUsername) {
             try {
                 // Request microphone access
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 console.log("Microphone access granted");
-                window.initiator = username;
+
                 // Initialize WebRTC
                 peerConnection = new RTCPeerConnection(configuration);
 
-                showIncomingCall(targetUsername, targetUserId);
                 // Add local stream tracks to the peer connection
                 localStream.getTracks().forEach(track => {
-                    console.log("Adding local track:", track);
                     peerConnection.addTrack(track, localStream);
                 });
 
                 // Set up ICE candidate handler
                 peerConnection.onicecandidate = event => {
                     if (event.candidate) {
-                        console.log("New ICE candidate:", event.candidate);
                         socket.send(JSON.stringify({
                             action: "ice_candidate",
                             candidate: event.candidate,
-                            target_user: targetUserId // Ensure target_user is set
+                            target_user: targetUserId
                         }));
-                    } else {
-                        console.log("ICE candidate gathering complete");
                     }
                 };
 
                 // Handle remote stream
                 peerConnection.ontrack = event => {
-                    console.log("Remote stream received:", event.streams[0]);
-                    const remoteAudio = document.getElementById("remoteAudio");
                     remoteAudio.srcObject = event.streams[0];
                     remoteAudio.play().catch(error => {
                         console.error("Error playing remote audio:", error);
                     });
-                
-                
-                    // Initialize audio visualization
-                    initAudioVisualization(remoteAudio);
+                };
+
+                // Connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    if (peerConnection.connectionState === 'disconnected') {
+                        endCall();
+                    }
                 };
 
                 // Send call request
                 socket.send(JSON.stringify({
                     action: "call",
-                    target_user: targetUserId
+                    target_user: targetUserId,
+                    disease: diseaseName
                 }));
+                
+                showCallInterface(targetUsername, false);
             } catch (error) {
-                console.error("Microphone access error:", error);
+                console.error("Error starting call:", error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Show incoming call modal
+        function showIncomingCall(callerName, callerId) {
+            incomingCaller.textContent = `From ${callerName}`;
+            window.callerId = callerId;
+            incomingCallModal.classList.remove('hidden');
+        }
+
+        // Show call interface
+        function showCallInterface(doctorName, isAccepted) {
+            callDoctorName.textContent = doctorName;
+            callStatus.textContent = isAccepted ? "Call in progress" : "Calling...";
+            callInterface.classList.remove('hidden');
+            incomingCallModal.classList.add('hidden');
+            
+            if (isAccepted) {
+                startCallTimer();
+            }
+        }
+
+        // Hide call interface
+        function hideCallInterface() {
+            callInterface.classList.add('hidden');
+            stopCallTimer();
+        }
+
+        // Start call timer
+        function startCallTimer() {
+            callStartTime = new Date();
+            callTimer = setInterval(() => {
+                const now = new Date();
+                const duration = Math.floor((now - callStartTime) / 1000);
+                const minutes = Math.floor(duration / 60).toString().padStart(2, '0');
+                const seconds = (duration % 60).toString().padStart(2, '0');
+                callDuration.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        // Stop call timer
+        function stopCallTimer() {
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
             }
         }
 
         // Accept an incoming call
-        function acceptCall() {
+        async function acceptCall() {
+            incomingCallModal.classList.add('hidden');
             socket.send(JSON.stringify({
                 action: "accept",
                 caller_id: window.callerId
             }));
-            startWebRTC(false); // Start WebRTC as the callee
-
-            startCallTimer();
-            if(window.initiator != username){
-                callUser(window.callerId, window.callerUsername);
-            }
+            await startWebRTC(false);
+            showCallInterface(incomingCaller.textContent.replace('From ', ''), true);
         }
+
         // Reject an incoming call
         function rejectCall() {
+            incomingCallModal.classList.add('hidden');
             socket.send(JSON.stringify({
                 action: "reject",
                 caller_id: window.callerId
             }));
         }
 
-        // Start WebRTC connection
+        // End the current call
+        function endCall() {
+            socket.send(JSON.stringify({
+                action: "end_call",
+                target_user: window.callerId || window.targetUserId
+            }));
+            resetWebRTC();
+            hideCallInterface();
+        }
+
+        // Initialize WebRTC connection
         async function startWebRTC(isCaller) {
             try {
-                // Initialize peerConnection if it doesn't exist
                 if (!peerConnection) {
                     peerConnection = new RTCPeerConnection(configuration);
-        
-                    // Set up ICE candidate handler
+
+                    // Add local stream if available
+                    if (!localStream) {
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+
+                    // Set up handlers
                     peerConnection.onicecandidate = event => {
                         if (event.candidate) {
-                            console.log("New ICE candidate:", event.candidate);
                             socket.send(JSON.stringify({
                                 action: "ice_candidate",
                                 candidate: event.candidate,
-                                target_user: window.callerId // Ensure target_user is set
+                                target_user: window.callerId || window.targetUserId
                             }));
-                        } else {
-                            console.log("ICE candidate gathering complete");
                         }
                     };
-        
-                    // Handle remote stream
+
                     peerConnection.ontrack = event => {
-                        console.log("Remote stream received:", event.streams[0]);
-                        const remoteAudio = document.getElementById("remoteAudio");
                         remoteAudio.srcObject = event.streams[0];
-                        remoteAudio.play().catch(error => {
-                            console.error("Error playing remote audio:", error);
-                        });
-                    };
-        
-                    // Log connection state changes
-                    peerConnection.onconnectionstatechange = () => {
-                        console.log("Connection state:", peerConnection.connectionState);
-                    };
-        
-                    // Log ICE connection state changes
-                    peerConnection.oniceconnectionstatechange = () => {
-                        console.log("ICE connection state:", peerConnection.iceConnectionState);
+                        remoteAudio.play();
                     };
                 }
-        
-                // Get local stream if it doesn't exist
-                if (!localStream) {
-                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    console.log("Local stream created:", localStream);
-                }
-        
-                // Add local tracks to the peer connection only if they haven't been added yet
-                const existingSenders = peerConnection.getSenders();
-                if (existingSenders.length === 0) {
-                    localStream.getTracks().forEach(track => {
-                        console.log("Adding local track:", track);
-                        peerConnection.addTrack(track, localStream);
-                    });
-                } else {
-                    console.log("Local tracks already added to peerConnection.");
-                }
-        
+
                 if (isCaller) {
-                    // Create and send an offer
                     const offer = await peerConnection.createOffer();
                     await peerConnection.setLocalDescription(offer);
-                    console.log("Sending offer:", offer);
                     socket.send(JSON.stringify({
                         action: "offer",
                         offer: offer,
-                        target_user: window.callerId // Ensure target_user is set
+                        target_user: window.targetUserId
                     }));
                 }
             } catch (error) {
                 console.error("Error starting WebRTC:", error);
+                alert(`Error: ${error.message}`);
             }
         }
 
+        // Handle incoming offer
         async function handleOffer(offer) {
-            console.log("Received offer:", offer);
-        
-            // Initialize peerConnection if it doesn't exist
-            if (!peerConnection) {
-                await startWebRTC(false); // Initialize WebRTC as the callee
+            try {
+                if (!peerConnection) {
+                    await startWebRTC(false);
+                }
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.send(JSON.stringify({
+                    action: "answer",
+                    answer: answer,
+                    target_user: window.callerId
+                }));
+            } catch (error) {
+                console.error("Error handling offer:", error);
             }
-        
-            // Set the remote description
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-        
-            // Process queued ICE candidates
-            while (queuedIceCandidates.length > 0) {
-                const candidate = queuedIceCandidates.shift();
-                console.log("Processing queued ICE candidate:", candidate);
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-        
-            // Create and send an answer
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-        
-            console.log("Sending answer:", answer);
-            socket.send(JSON.stringify({
-                action: "answer",
-                answer: answer,
-                target_user: window.callerId // Ensure target_user is set
-            }));
         }
 
         // Handle incoming answer
         async function handleAnswer(answer) {
-            console.log("Received answer:", answer);
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            } catch (error) {
+                console.error("Error handling answer:", error);
+            }
         }
 
-        let queuedIceCandidates = []; // Queue to store ICE candidates
-
+        // Handle ICE candidate
         async function handleNewICECandidate(candidate) {
             try {
-                if (!peerConnection) {
-                    console.warn("peerConnection is not initialized yet. Discarding ICE candidate.");
-                    return;
+                if (peerConnection && peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                 }
-        
-                // If remote description is not set, queue the ICE candidate
-                if (!peerConnection.remoteDescription) {
-                    console.log("Remote description not set. Queuing ICE candidate:", candidate);
-                    queuedIceCandidates.push(candidate);
-                    return;
-                }
-        
-                console.log("Adding ICE candidate:", candidate);
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (error) {
                 console.error("Error adding ICE candidate:", error);
             }
         }
 
+        // Reset WebRTC
         function resetWebRTC() {
             if (peerConnection) {
                 peerConnection.close();
                 peerConnection = null;
             }
-            queuedIceCandidates = []; // Clear the queue
-            localStream = null;
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
         }
 
+        // Event listeners for call controls
+        muteButton.addEventListener('click', () => {
+            if (localStream) {
+                const audioTracks = localStream.getAudioTracks();
+                audioTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                    muteButton.innerHTML = track.enabled ? 
+                        '<i class="fas fa-microphone"></i>' : 
+                        '<i class="fas fa-microphone-slash"></i>';
+                });
+            }
+        });
 
-        // Initialize audio visualization
-function initAudioVisualization(audioElement) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    source = audioContext.createMediaStreamSource(audioElement.srcObject);
+        endCallButton.addEventListener('click', endCall);
 
-    source.connect(analyser);
-    analyser.connect(audioContext.destination);
+        speakerButton.addEventListener('click', () => {
+            // Note: This may not work on all browsers due to security restrictions
+            remoteAudio.volume = remoteAudio.volume === 1 ? 0.5 : 1;
+            speakerButton.innerHTML = remoteAudio.volume === 1 ? 
+                '<i class="fas fa-volume-up"></i>' : 
+                '<i class="fas fa-volume-down"></i>';
+        });
 
-    analyser.fftSize = 256;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    function draw() {
-        requestAnimationFrame(draw);
-
-        analyser.getByteFrequencyData(dataArray);
-
-        canvasCtx.fillStyle = "rgb(200, 200, 200)";
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const barWidth = (canvas.width / bufferLength) * 2.5;
-        let barHeight;
-        let x = 0;
-
-        for (let i = 0; i < bufferLength; i++) {
-            barHeight = dataArray[i] / 2;
-
-            canvasCtx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
-            canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight);
-
-            x += barWidth + 1;
-        }
-    }
-
-    draw();
-}
-
-
-// Toggle mute/unmute
-function toggleMute() {
-    const remoteAudio = document.getElementById("remoteAudio");
-    remoteAudio.muted = !remoteAudio.muted;
-    const muteButton = document.getElementById("mute-button");
-    muteButton.textContent = remoteAudio.muted ? "Unmute" : "Mute";
-}
-
-
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (peerConnection) {
+                socket.send(JSON.stringify({
+                    action: "end_call",
+                    target_user: window.callerId || window.targetUserId
+                }));
+                resetWebRTC();
+            }
+        });
     </script>
 </body>
 </html>

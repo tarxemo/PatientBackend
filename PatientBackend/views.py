@@ -4,34 +4,38 @@ from django.shortcuts import redirect
 from django.contrib.auth import login
 from authApp.models import CustomUser
 
-def call(request):
-    return render(request, 'call.html')
+def doctor_wait_call(request):
+    doctors = CustomUser.objects.all()
+    return render(request, 'call.html', {"doctors": doctors})
 
 def get_users(request):
     users = CustomUser.objects.exclude(username=request.user.username).values("id", "username")
     return JsonResponse(list(users), safe=False)
 
 
-def call_page(request):
+def doctor_emergence_call(request):
     # Check if there's a caller parameter in the URL
-    caller_username = request.GET.get('caller')
-    
+    caller_username = request.GET.get('username')
+    disease = request.GET.get('disease')
+    print(disease)
+    print(caller_username)
     if caller_username:
         try:
             # Get the caller user
             caller = CustomUser.objects.get(username=caller_username)
             # Authenticate the user without password (not secure for production!)
-            login(request, caller)
-            return redirect('call_page')  # Redirect to clean URL after auth
+            login(request, caller)  # Redirect to clean URL after auth
         except CustomUser.DoesNotExist:
-            pass  # Handle invalid username
-    
+            return render(request, "call.html")
+    else:
+            return render(request, "call.html")
     # If no caller parameter or invalid, proceed normally
     if not request.user.is_authenticated:
-        return redirect('login')  # Redirect to normal login if not authenticated
+            return render(request, "call.html") # Redirect to normal login if not authenticated
     
-    users = CustomUser.objects.exclude(id=request.user.id)
-    return render(request, "call.html", {"users": users})
+    disease = Disease.objects.get(name=disease)
+    doctors = disease.doctors.all()
+    return render(request, "call.html", {"doctors": doctors, "disease":disease})
 
 
 import csv
