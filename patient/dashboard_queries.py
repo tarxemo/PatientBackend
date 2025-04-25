@@ -259,14 +259,14 @@ class DashboardQuery(graphene.ObjectType):
 
     def resolve_user_distribution(self, info):
         return {
-            'patient_count': CustomUser.objects.filter(user_type='PATIENT').count(),
-            'doctor_count': CustomUser.objects.filter(user_type='DOCTOR').count(),
-            'lab_count': CustomUser.objects.filter(user_type='LAB').count(),
-            'admin_count': CustomUser.objects.filter(user_type='ADMIN').count(),
+            'patient_count': CustomUser.objects.filter(user_type='patient').count(),
+            'doctor_count': CustomUser.objects.filter(user_type='doctor').count(),
+            'lab_count': CustomUser.objects.filter(user_type='lab_technitian').count(),
+            'admin_count': CustomUser.objects.filter(user_type='admin').count(),
         }
 
     def resolve_platform_usage(self, info, last_days=7):
-        end_date = datetime.timezone.now()
+        end_date = datetime.datetime.now()
         start_date = end_date - datetime.timedelta(days=last_days)
         
         consultations = Consultation.objects.filter(

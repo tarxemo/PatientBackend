@@ -33,11 +33,13 @@ class DoctorInput(BaseProfileInput):
 
 # Input for Laboratory
 class LaboratoryInput(BaseProfileInput):
+    lab_technitian_id = graphene.ID()
     lab_name = String(required=True)
     accreditation_number = String(required=True)
     location = String(required=True)
     email=String(required=True)
     description=String()
+    address=String()
     
 
 # Input for Symptom
@@ -136,13 +138,12 @@ class LabTechInput(graphene.InputObjectType):
     phone_number = graphene.String()
     address = graphene.String()
 
-class LaboratoryInput(graphene.InputObjectType):
-    id = graphene.ID()
-    user_id = graphene.ID(required=True)
-    lab_tech_id = graphene.ID()
-    lab_name = graphene.String(required=True)
-    accreditation_number = graphene.String(required=True)
-    location = graphene.String(required=True)
+# class LaboratoryInput(graphene.InputObjectType):
+#     id = graphene.ID()
+#     lab_tech_id = graphene.ID()
+#     lab_name = graphene.String(required=True)
+#     accreditation_number = graphene.String(required=True)
+#     location = graphene.String(required=True)
 
 class SymptomInput(graphene.InputObjectType):
     id = graphene.ID()

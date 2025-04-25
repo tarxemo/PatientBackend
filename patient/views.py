@@ -463,13 +463,13 @@ class CreateLaboratory(graphene.Mutation):
     @staticmethod
     def mutate(root, info, input):
         try:
-            user = get_user_model().objects.get(pk=input.user_id)
+            user = LabTech.objects.get(pk=input.lab_technitian_id).user
         except get_user_model().DoesNotExist:
             raise GraphQLError("User with provided ID does not exist.")
 
         laboratory = Laboratory.objects.create(
             user=user,
-            lab_tech_id=input.lab_tech_id if input.lab_tech_id else None,
+            lab_tech_id=input.lab_technitian_id if input.lab_technitian_id else None,
             lab_name=input.lab_name,
             accreditation_number=input.accreditation_number,
             location=input.location

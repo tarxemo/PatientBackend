@@ -17,6 +17,7 @@ class UserInput(InputObjectType):
 
 # Define Input Type
 class UserUpdateInput(InputObjectType):
+    user_id = graphene.ID(required=True) 
     username = graphene.String()
     first_name =graphene.String()
     last_name = graphene.String()
@@ -27,7 +28,7 @@ class UserUpdateInput(InputObjectType):
     profile_picture = graphene.String()
     date_of_birth = graphene.Date()
     is_verified = graphene.Boolean(default_value=False)
-
+    
     # Additional fields for password change
     old_password = graphene.String()
     new_password = graphene.String()

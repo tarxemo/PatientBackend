@@ -120,18 +120,17 @@ class CreateUser(Mutation):
 # Define Mutation
 class UpdateCustomUser(Mutation):
     class Arguments:
-        user_data = UserUpdateInput(required=True)
-        user_id = graphene.ID(required=True)  # Now required since we're not using context user
+        user_data = UserUpdateInput(required=True) # Now required since we're not using context user
 
     user = graphene.Field(CustomUserOutput)
 
-    def mutate(self, info, user_data, user_id):
+    def mutate(self, info, user_data):
         try:
             # Get user by provided ID (no auth check)
-            user = CustomUser.objects.get(id=user_id)
+            user = CustomUser.objects.get(id=user_data.user_id)
 
             # Handle password update if provided
-            if hasattr(user_data, 'old_password') and hasattr(user_data, 'new_password'):
+            if user_data.old_password and user_data.new_password:
                 if not check_password(user_data.old_password, user.password):
                     raise GraphQLError("Old password is incorrect")
                 
