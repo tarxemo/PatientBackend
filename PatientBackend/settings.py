@@ -125,6 +125,7 @@ CACHES = {
 }
 
 
+
 # Enable WebSockets
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
@@ -143,8 +144,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'patient',
+<<<<<<< HEAD
         'USER': 'martin',
         'PASSWORD': '@Martin12',
+=======
+        'USER': 'tarxemo',
+        'PASSWORD': '123456',
+>>>>>>> 8da7e4192cb75a61217972526ae338d618fe30d0
         'HOST': 'localhost',
         'PORT': '5432'
     }
@@ -185,7 +191,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 

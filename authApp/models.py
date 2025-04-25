@@ -7,6 +7,7 @@ class CustomUser(AbstractUser):
 
         ('admin', 'Admin'),
         ('doctor', 'Doctor'),
+        ('admin', 'Admin'),
         ('patient', 'Patient'),
         ('lab_technician', 'Lab Technician'),
     ]

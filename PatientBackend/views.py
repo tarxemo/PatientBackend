@@ -4,34 +4,80 @@ from django.shortcuts import redirect
 from django.contrib.auth import login
 from authApp.models import CustomUser
 
-def call(request):
-    return render(request, 'call.html')
+def doctor_wait_call(request):
+    doctors = CustomUser.objects.all()
+    return render(request, 'call.html', {"doctors": doctors})
 
 def get_users(request):
     users = CustomUser.objects.exclude(username=request.user.username).values("id", "username")
     return JsonResponse(list(users), safe=False)
 
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
 
-def call_page(request):
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, get_user_model
+from django.contrib import messages
+
+User = get_user_model()
+
+def login_view(request):
+    username_param = request.GET.get('username')
+    next_url = request.GET.get('next', None)
+
+    if username_param:
+        try:
+            user = User.objects.get(username=username_param)
+            login(request, user)
+            return render(request, 'call.html', {"next_url": next_url})
+        except User.DoesNotExist:
+            messages.error(request, f"No user found with username: {username_param}")
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return render(request, 'call.html', {"next_url": next_url})
+        else:
+            messages.error(request, 'Invalid username or password.')
+
+    return render(request, 'login.html')
+
+def change_user_type(reequest):
+    doctors = Doctor.objects.all()
+    for doctor in doctors:
+        user = CustomUser.objects.get(id=doctor.user.id)
+        user.user_type='doctor'
+        user.save()
+        print(user.user_type)
+
+def doctor_emergence_call(request):
     # Check if there's a caller parameter in the URL
-    caller_username = request.GET.get('caller')
-    
+    caller_username = request.GET.get('username')
+    disease = request.GET.get('disease')
+    print(disease)
+    print(caller_username)
     if caller_username:
         try:
             # Get the caller user
             caller = CustomUser.objects.get(username=caller_username)
             # Authenticate the user without password (not secure for production!)
-            login(request, caller)
-            return redirect('call_page')  # Redirect to clean URL after auth
+            login(request, caller)  # Redirect to clean URL after auth
         except CustomUser.DoesNotExist:
-            pass  # Handle invalid username
-    
+            return render(request, "call.html")
+    else:
+            return render(request, "call.html")
     # If no caller parameter or invalid, proceed normally
     if not request.user.is_authenticated:
-        return redirect('login')  # Redirect to normal login if not authenticated
+            return render(request, "call.html") # Redirect to normal login if not authenticated
     
-    users = CustomUser.objects.exclude(id=request.user.id)
-    return render(request, "call.html", {"users": users})
+    disease = Disease.objects.get(name=disease)
+    doctors = disease.doctors.all()
+    return render(request, "call.html", {"doctors": doctors, "disease":disease})
 
 
 import csv

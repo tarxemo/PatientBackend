@@ -1,0 +1,567 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Doctor Consultation | MedConnect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        .waveform {
+            display: flex;
+            align-items: flex-end;
+            height: 60px;
+        }
+        .waveform-bar {
+            background-color: #3b82f6;
+            width: 4px;
+            margin: 0 2px;
+            border-radius: 2px;
+            animation: waveform-animation 1.5s infinite ease-in-out;
+        }
+        @keyframes waveform-animation {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
+        }
+        .waveform-bar:nth-child(1) { animation-delay: 0.1s; }
+        .waveform-bar:nth-child(2) { animation-delay: 0.3s; }
+        .waveform-bar:nth-child(3) { animation-delay: 0.5s; }
+        .waveform-bar:nth-child(4) { animation-delay: 0.2s; }
+        .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm py-4 px-6">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-heartbeat text-blue-600 text-2xl"></i>
+                    <h1 class="text-xl font-bold text-gray-800">MedConnect</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">Welcome, {{ request.user.username }}</span>
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow py-8 px-4">
+            <div class="max-w-6xl mx-auto">
+                <!-- Disease Info Card -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 transition-all duration-300 hover:shadow-lg">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800 mb-2">Diagnosis: {{ disease.name }}</h2>
+                                <p class="text-gray-600 mb-4">{{ disease.description|default:"No description available" }}</p>
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    {% for symptom in disease.related_symptoms.all %}
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">{{ symptom.name }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="bg-red-100 text-red-800 px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                <span>Emergency Consultation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Doctors Section -->
+                <section class="mb-12">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-user-md text-blue-500 mr-2"></i>
+                        Available Specialists
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for doctor in doctors %}
+                        {% if doctor.id != request.user.id %}
+                        <div class="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl">
+                            <div class="p-6">
+                                <div class="flex items-start space-x-4 mb-4">
+                                    <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-user-md text-blue-600 text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-gray-800">Dr. {{ doctor.user.get_full_name }}</h3>
+                                        <p class="text-blue-600">{{ doctor.specialization }}</p>
+                                        <div class="flex items-center mt-1">
+                                            <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                            <span class="text-gray-600 text-sm">4.8 (120 reviews)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between items-center mb-4">
+                                    <div>
+                                        <p class="text-gray-500 text-sm">Experience</p>
+                                        <p class="font-medium">{{ doctor.years_of_experience }} years</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-500 text-sm">Response Time</p>
+                                        <p class="font-medium">< 5 min</p>
+                                    </div>
+                                </div>
+                                {% if doctor.username %}
+                                <button onclick="callUser({{ doctor.id }}, '{{ doctor.username }}')" 
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
+                                    <i class="fas fa-phone-alt mr-2"></i>
+                                    Call Now
+                                </button>
+                                {% else %}
+                                <button onclick="callUser({{ doctor.user.id }}, '{{ doctor.user.username }}')" 
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
+                                    <i class="fas fa-phone-alt mr-2"></i>
+                                    Call Now
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% empty %}
+                        <div class="col-span-full bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-yellow-400 text-xl"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        No available doctors at the moment. Please try again later or contact our support team.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <!-- Call Interface (Hidden by default) -->
+                <div id="call-interface" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <!-- Call Header -->
+                        <div class="bg-blue-600 text-white p-6 text-center">
+                            <div id="call-status" class="text-xl font-semibold">Calling Dr. Smith...</div>
+                            <div id="call-duration" class="text-sm opacity-80 mt-1">00:00</div>
+                        </div>
+                        
+                        <!-- Call Content -->
+                        <div class="p-6">
+                            <!-- Doctor Info -->
+                            <div class="flex flex-col items-center mb-6">
+                                <div class="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                                    <i class="fas fa-user-md text-blue-600 text-3xl"></i>
+                                </div>
+                                <h3 id="call-doctor-name" class="font-bold text-gray-800 text-lg">Dr. {{ doctor.user.get_full_name }}</h3>
+                                <p class="text-blue-600">{{ doctor.specialization }}</p>
+                            </div>
+                            
+                            <!-- Audio Visualization -->
+                            <div class="waveform flex justify-center mb-8">
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                            </div>
+                            
+                            <!-- Call Controls -->
+                            <div class="flex justify-center space-x-6">
+                                <button id="mute-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                    <i class="fas fa-microphone text-gray-700"></i>
+                                </button>
+                                <button id="end-call" class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-phone-slash text-white"></i>
+                                </button>
+                                <button id="speaker-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                    <i class="fas fa-volume-up text-gray-700"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Incoming Call Modal (Hidden by default) -->
+                <div id="incoming-call-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="bg-green-600 text-white p-6 text-center">
+                            <h3 class="text-xl font-semibold">Incoming Call</h3>
+                            <p id="incoming-caller" class="mt-1">From Dr. Smith</p>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="flex flex-col items-center mb-6">
+                                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                                    <i class="fas fa-user-md text-green-600 text-3xl"></i>
+                                </div>
+                                <h3 id="caller-name" class="font-bold text-gray-800 text-lg"></h3>
+                                <p class="text-gray-600">Cardiologist</p>
+                            </div>
+                            
+                            <div class="flex justify-center space-x-6">
+                                <button onclick="rejectCall()" class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-phone-slash text-white"></i>
+                                </button>
+                                <button onclick="acceptCall()" class="w-14 h-14 rounded-full bg-green-600 flex items-center justify-center hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-phone-alt text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t py-4 px-6">
+            <div class="max-w-6xl mx-auto text-center text-gray-500 text-sm">
+                <p>© 2023 MedConnect. All rights reserved.</p>
+                <p class="mt-1">For emergencies, please call 112 or visit the nearest hospital.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Hidden Audio Element -->
+    <audio id="remoteAudio" autoplay class="hidden"></audio>
+
+    <!-- WebSocket and WebRTC Script -->
+    <script>
+        const userId = "{{ request.user.id }}";
+        const username = "{{ request.user.username }}";
+        const diseaseName = "{{ disease.name }}";
+        const socket = new WebSocket((window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws/call/");
+        
+        let peerConnection;
+        let localStream;
+        let callStartTime;
+        let callTimer;
+        const configuration = {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                // Add TURN server here if needed
+            ]
+        };
+
+        // DOM Elements
+        const callInterface = document.getElementById('call-interface');
+        const incomingCallModal = document.getElementById('incoming-call-modal');
+        const callStatus = document.getElementById('call-status');
+        const callDuration = document.getElementById('call-duration');
+        const callDoctorName = document.getElementById('call-doctor-name');
+        const incomingCaller = document.getElementById('incoming-caller');
+        const muteButton = document.getElementById('mute-button');
+        const endCallButton = document.getElementById('end-call');
+        const speakerButton = document.getElementById('speaker-button');
+        const remoteAudio = document.getElementById('remoteAudio');
+
+        // WebSocket message handler
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log("WebSocket message received:", data);
+
+            switch (data.action) {
+                case "incoming_call":
+                    showIncomingCall(data.caller_name, data.caller_id);
+                    break;
+                case "call_accepted":
+                    startWebRTC(true);
+                    showCallInterface(data.callee_name, true);
+                    break;
+                case "call_rejected":
+                    alert(`${data.callee_name} rejected your call.`);
+                    hideCallInterface();
+                    break;
+                case "offer":
+                    handleOffer(data.offer);
+                    break;
+                case "answer":
+                    handleAnswer(data.answer);
+                    break;
+                case "ice_candidate":
+                    handleNewICECandidate(data.candidate);
+                    break;
+                case "call_ended":
+                    alert(`Call ended by ${data.by_user}.`);
+                    endCall();
+                    break;
+                default:
+                    console.warn("Unknown action:", data.action);
+            }
+        };
+
+        // Call a doctor
+        async function callUser(targetUserId, targetUsername) {
+            try {
+                // Request microphone access
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log("Microphone access granted");
+
+                // Initialize WebRTC
+                peerConnection = new RTCPeerConnection(configuration);
+
+                // Add local stream tracks to the peer connection
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Set up ICE candidate handler
+                peerConnection.onicecandidate = event => {
+                    if (event.candidate) {
+                        socket.send(JSON.stringify({
+                            action: "ice_candidate",
+                            candidate: event.candidate,
+                            target_user: targetUserId
+                        }));
+                    }
+                };
+
+                // Handle remote stream
+                peerConnection.ontrack = event => {
+                    remoteAudio.srcObject = event.streams[0];
+                    remoteAudio.play().catch(error => {
+                        console.error("Error playing remote audio:", error);
+                    });
+                };
+
+                // Connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    if (peerConnection.connectionState === 'disconnected') {
+                        endCall();
+                    }
+                };
+
+                // Send call request
+                socket.send(JSON.stringify({
+                    action: "call",
+                    target_user: targetUserId,
+                    disease: diseaseName
+                }));
+                
+                showCallInterface(targetUsername, false);
+            } catch (error) {
+                console.error("Error starting call:", error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Show incoming call modal
+        function showIncomingCall(callerName, callerId) {
+            incomingCaller.textContent = `From ${callerName}`;
+            window.callerId = callerId;
+            incomingCallModal.classList.remove('hidden');
+        }
+
+        // Show call interface
+        function showCallInterface(doctorName, isAccepted) {
+            callDoctorName.textContent = doctorName;
+            callStatus.textContent = isAccepted ? "Call in progress" : "Calling...";
+            callInterface.classList.remove('hidden');
+            incomingCallModal.classList.add('hidden');
+            
+            if (isAccepted) {
+                startCallTimer();
+            }
+        }
+
+        // Hide call interface
+        function hideCallInterface() {
+            callInterface.classList.add('hidden');
+            stopCallTimer();
+        }
+
+        // Start call timer
+        function startCallTimer() {
+            callStartTime = new Date();
+            callTimer = setInterval(() => {
+                const now = new Date();
+                const duration = Math.floor((now - callStartTime) / 1000);
+                const minutes = Math.floor(duration / 60).toString().padStart(2, '0');
+                const seconds = (duration % 60).toString().padStart(2, '0');
+                callDuration.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        // Stop call timer
+        function stopCallTimer() {
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+        }
+
+        // Accept an incoming call
+        async function acceptCall() {
+            incomingCallModal.classList.add('hidden');
+            socket.send(JSON.stringify({
+                action: "accept",
+                caller_id: window.callerId
+            }));
+            await startWebRTC(false);
+            showCallInterface(incomingCaller.textContent.replace('From ', ''), true);
+        }
+
+        // Reject an incoming call
+        function rejectCall() {
+            incomingCallModal.classList.add('hidden');
+            socket.send(JSON.stringify({
+                action: "reject",
+                caller_id: window.callerId
+            }));
+        }
+
+        // End the current call
+        function endCall() {
+            socket.send(JSON.stringify({
+                action: "end_call",
+                target_user: window.callerId || window.targetUserId
+            }));
+            resetWebRTC();
+            hideCallInterface();
+        }
+
+        // Initialize WebRTC connection
+        async function startWebRTC(isCaller) {
+            try {
+                if (!peerConnection) {
+                    peerConnection = new RTCPeerConnection(configuration);
+
+                    // Add local stream if available
+                    if (!localStream) {
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+
+                    // Set up handlers
+                    peerConnection.onicecandidate = event => {
+                        if (event.candidate) {
+                            socket.send(JSON.stringify({
+                                action: "ice_candidate",
+                                candidate: event.candidate,
+                                target_user: window.callerId || window.targetUserId
+                            }));
+                        }
+                    };
+
+                    peerConnection.ontrack = event => {
+                        remoteAudio.srcObject = event.streams[0];
+                        remoteAudio.play();
+                    };
+                }
+
+                if (isCaller) {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    socket.send(JSON.stringify({
+                        action: "offer",
+                        offer: offer,
+                        target_user: window.targetUserId
+                    }));
+                }
+            } catch (error) {
+                console.error("Error starting WebRTC:", error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Handle incoming offer
+        async function handleOffer(offer) {
+            try {
+                if (!peerConnection) {
+                    await startWebRTC(false);
+                }
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.send(JSON.stringify({
+                    action: "answer",
+                    answer: answer,
+                    target_user: window.callerId
+                }));
+            } catch (error) {
+                console.error("Error handling offer:", error);
+            }
+        }
+
+        // Handle incoming answer
+        async function handleAnswer(answer) {
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            } catch (error) {
+                console.error("Error handling answer:", error);
+            }
+        }
+
+        // Handle ICE candidate
+        async function handleNewICECandidate(candidate) {
+            try {
+                if (peerConnection && peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+            } catch (error) {
+                console.error("Error adding ICE candidate:", error);
+            }
+        }
+
+        // Reset WebRTC
+        function resetWebRTC() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+        }
+
+        // Event listeners for call controls
+        muteButton.addEventListener('click', () => {
+            if (localStream) {
+                const audioTracks = localStream.getAudioTracks();
+                audioTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                    muteButton.innerHTML = track.enabled ? 
+                        '<i class="fas fa-microphone"></i>' : 
+                        '<i class="fas fa-microphone-slash"></i>';
+                });
+            }
+        });
+
+        endCallButton.addEventListener('click', endCall);
+
+        speakerButton.addEventListener('click', () => {
+            // Note: This may not work on all browsers due to security restrictions
+            remoteAudio.volume = remoteAudio.volume === 1 ? 0.5 : 1;
+            speakerButton.innerHTML = remoteAudio.volume === 1 ? 
+                '<i class="fas fa-volume-up"></i>' : 
+                '<i class="fas fa-volume-down"></i>';
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (peerConnection) {
+                socket.send(JSON.stringify({
+                    action: "end_call",
+                    target_user: window.callerId || window.targetUserId
+                }));
+                resetWebRTC();
+            }
+        });
+    </script>
+</body>
+</html>

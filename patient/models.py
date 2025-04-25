@@ -6,7 +6,7 @@ class BaseProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
-
+    profile_image = models.ImageField(upload_to="profile_images/", null=True, blank=True)
     class Meta:
         abstract = True
 

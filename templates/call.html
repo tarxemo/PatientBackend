@@ -4,40 +4,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Call Users</title>
+    <title>Emergency Doctor Consultation | MedConnect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        .waveform {
+            display: flex;
+            align-items: flex-end;
+            height: 60px;
+        }
+        .waveform-bar {
+            background-color: #3b82f6;
+            width: 4px;
+            margin: 0 2px;
+            border-radius: 2px;
+            animation: waveform-animation 1.5s infinite ease-in-out;
+        }
+        @keyframes waveform-animation {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
+        }
+        .waveform-bar:nth-child(1) { animation-delay: 0.1s; }
+        .waveform-bar:nth-child(2) { animation-delay: 0.3s; }
+        .waveform-bar:nth-child(3) { animation-delay: 0.5s; }
+        .waveform-bar:nth-child(4) { animation-delay: 0.2s; }
+        .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+    </style>
 </head>
-<body>
-    <h1>Welcome, {{ request.user.username }}</h1>
-    
-    <h2>Available Users</h2>
-    <ul id="user-list">
-        {% for user in users %}
-            {% if user.id != request.user.id %}  <!-- Prevent calling self -->
-                <li>
-                    {{ user.username }}
-                    <button onclick="callUser({{ user.id }}, '{{ user.username }}')">Call</button>
-                </li>
-            {% endif %}
-        {% endfor %}
-    </ul>
+<body class="bg-gray-50 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm py-4 px-6">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-heartbeat text-blue-600 text-2xl"></i>
+                    <h1 class="text-xl font-bold text-gray-800">MedConnect</h1>
+                </div>
+                {% if next_url %}
+                <a href="{{next_url}}" class="p-2 rounded-full bg-gray-900 text-[#FFE31A]">Back</a>
+                {% endif %}
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">Welcome, {{ request.user.username }}</span>
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-    <h3 id="incoming-call" style="display: none;"></h3>
-    <button id="accept-call" style="display: none;" onclick="acceptCall()">Accept</button>
-    <button id="reject-call" style="display: none;" onclick="rejectCall()">Reject</button>
+        <!-- Main Content -->
+        <main class="flex-grow py-8 px-4">
+            <div class="max-w-6xl mx-auto">
+                <!-- Disease Info Card -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 transition-all duration-300 hover:shadow-lg">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800 mb-2">Diagnosis: {{ disease.name }}</h2>
+                                <p class="text-gray-600 mb-4">{{ disease.description|default:"No description available" }}</p>
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    {% for symptom in disease.related_symptoms.all %}
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">{{ symptom.name }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="bg-red-100 text-red-800 px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                <span>Emergency Consultation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    <h2>Voice Call</h2>
-    <audio id="remoteAudio" autoplay></audio>
-    
-    <!-- Audio Controls -->
-    <div id="audio-controls" style="display: none;">
-        <label for="volume">Volume:</label>
-        <input type="range" id="volume" min="0" max="1" step="0.1" value="1" oninput="adjustVolume(this.value)">
-        <button id="mute-button" onclick="toggleMute()">Mute</button>
-        <button id="play-pause-button" onclick="togglePlayPause()">Pause</button>
+                <!-- Available Doctors Section -->
+                <section class="mb-12">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-user-md text-blue-500 mr-2"></i>
+                        Available Specialists
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for doctor in doctors %}
+                        {% if doctor.id != request.user.id %}
+                        <div class="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl">
+                            <div class="p-6">
+                                <div class="flex items-start space-x-4 mb-4">
+                                    <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-user-md text-blue-600 text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-gray-800">Dr. {{ doctor.user.get_full_name }}</h3>
+                                        <p class="text-blue-600">{{ doctor.specialization }}</p>
+                                        <div class="flex items-center mt-1">
+                                            <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                            <span class="text-gray-600 text-sm">4.8 (120 reviews)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between items-center mb-4">
+                                    <div>
+                                        <p class="text-gray-500 text-sm">Experience</p>
+                                        <p class="font-medium">{{ doctor.years_of_experience }} years</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-500 text-sm">Response Time</p>
+                                        <p class="font-medium">< 5 min</p>
+                                    </div>
+                                </div>
+                                {% if doctor.username %}
+                                <button onclick="callUser({{ doctor.id }}, '{{ doctor.username }}')" 
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
+                                    <i class="fas fa-phone-alt mr-2"></i>
+                                    Call Now
+                                </button>
+                                {% else %}
+                                <button onclick="callUser({{ doctor.user.id }}, '{{ doctor.user.username }}')" 
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
+                                    <i class="fas fa-phone-alt mr-2"></i>
+                                    Call Now
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% empty %}
+                        <div class="col-span-full bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-yellow-400 text-xl"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        No available doctors at the moment. Please try again later or contact our support team.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <!-- Incoming Call Modal (Hidden by default) -->
+                <div id="incoming-call" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="bg-green-600 text-white p-6 text-center">
+                            <h3 class="text-xl font-semibold">Incoming Call</h3>
+                            <p id="incoming-caller" class="mt-1">From Dr. Smith</p>
+                        </div>
+                        
+                        <!-- Call Header -->
+                        <div class="bg-green-600 text-white p-6 text-center">
+                            <div id="call-status" class="text-xl font-semibold">Calling Dr. Smith...</div>
+                            <div id="call-duration" class="text-sm opacity-80 mt-1">00:00</div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="flex flex-col items-center mb-6">
+                                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                                    <i class="fas fa-user-md text-green-600 text-3xl"></i>
+                                </div>
+                                <h3 id="caller-name" class="font-bold text-gray-800 text-lg"></h3>
+                                <p class="text-gray-600">Cardiologist</p>
+                            </div>
+                            
+                            
+                            <!-- Audio Visualization -->
+                            <div class="waveform flex justify-center mb-8">
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                                <div class="waveform-bar"></div>
+                            </div>
+
+                            <canvas id="audio-visualization" width="1" height="1" style="display:none"></canvas>
+
+
+                            
+                            <!-- Call Controls -->
+                            <div class="flex justify-center space-x-6">
+                                <button id="mute-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                    <i class="fas fa-microphone text-gray-700"></i>
+                                </button>
+                                <button id="end-call" onclick="endCall()"  class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-phone-slash text-white"></i>
+                                </button>
+                                <button  id="accept-call" onclick="acceptCall()" class="w-14 h-14 rounded-full bg-green-600 flex items-center justify-center hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-phone-alt text-white"></i>
+                                </button>
+                                <button id="speaker-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                    <i class="fas fa-volume-up text-gray-700"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t py-4 px-6">
+            <div class="max-w-6xl mx-auto text-center text-gray-500 text-sm">
+                <p>© 2023 MedConnect. All rights reserved.</p>
+                <p class="mt-1">For emergencies, please call 112 or visit the nearest hospital.</p>
+            </div>
+        </footer>
     </div>
-    
-    <!-- Audio Visualization -->
-    <canvas id="audio-visualization" width="400" height="100" style="border: 1px solid black;"></canvas>
+
+    <!-- Hidden Audio Element -->
+    <audio id="remoteAudio" autoplay class="hidden"></audio>
+
 
     <script>
         const userId = "{{ request.user.id }}";
@@ -51,9 +235,20 @@
         const canvas = document.getElementById("audio-visualization");
         const canvasCtx = canvas.getContext("2d");
 
+        const incomingCallModal = document.getElementById('incoming-call');
+        const incomingCaller = document.getElementById('incoming-caller');
+        const muteButton = document.getElementById('mute-button');
+        const speakerButton = document.getElementById('speaker-button');
+        const endCallButton = document.getElementById('end-call');
+        const callDuration = document.getElementById('call-duration');
+        const callStatus = document.getElementById('call-status');
+
         let audioContext;
         let analyser;
         let source;
+        let callStartTime;
+        let callTimer;
+
         const configuration = {
             iceServers: [
                 { urls: "stun:stun.l.google.com:19302" }, // Google's public STUN server
@@ -61,6 +256,67 @@
             ]
         };
 
+        // Show incoming call modal
+        function showIncomingCall(callerName, callerId) {
+            incomingCaller.textContent = `From ${callerName}`;
+            window.callerId = callerId;
+            incomingCallModal.classList.remove('hidden');
+            callStatus.textContent =  "Calling...";
+        }
+
+        function hideIncomingCall() {
+            incomingCallModal.classList.add('hidden');
+        }
+
+        speakerButton.addEventListener('click', () => {
+            // Note: This may not work on all browsers due to security restrictions
+            remoteAudio.volume = remoteAudio.volume === 1 ? 0.5 : 1;
+            speakerButton.innerHTML = remoteAudio.volume === 1 ? 
+                '<i class="fas fa-volume-up"></i>' : 
+                '<i class="fas fa-volume-down"></i>';
+        });
+        endCallButton.addEventListener('click', rejectCall);
+               // Event listeners for call controls
+               muteButton.addEventListener('click', () => {
+                if (localStream) {
+                    const audioTracks = localStream.getAudioTracks();
+                    audioTracks.forEach(track => {
+                        track.enabled = !track.enabled;
+                        muteButton.innerHTML = track.enabled ? 
+                            '<i class="fas fa-microphone"></i>' : 
+                            '<i class="fas fa-microphone-slash"></i>';
+                    });
+                }
+            });
+
+                // End the current call
+                function endCall() {
+                    socket.send(JSON.stringify({
+                        action: "end_call",
+                        target_user: window.callerId || window.targetUserId
+                    }));
+                    resetWebRTC();
+                    hideIncomingCall();
+                    stopCallTimer();
+                }
+                // Start call timer
+                function startCallTimer() {
+                    callStartTime = new Date();
+                    callTimer = setInterval(() => {
+                        const now = new Date();
+                        const duration = Math.floor((now - callStartTime) / 1000);
+                        const minutes = Math.floor(duration / 60).toString().padStart(2, '0');
+                        const seconds = (duration % 60).toString().padStart(2, '0');
+                        callDuration.textContent = `${minutes}:${seconds}`;
+                    }, 1000);
+                }
+                        // Stop call timer
+        function stopCallTimer() {
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+        }
         // WebSocket message handler
         socket.onmessage = function(event) {
             const data = JSON.parse(event.data);
@@ -68,11 +324,15 @@
 
             switch (data.action) {
                 case "incoming_call":
-                    document.getElementById("incoming-call").textContent = `Incoming call from ${data.caller_name}`;
-                    document.getElementById("incoming-call").style.display = "block";
-                    document.getElementById("accept-call").style.display = "inline";
-                    document.getElementById("reject-call").style.display = "inline";
-                    window.callerId = data.caller_id;
+                    showIncomingCall(data.caller_name, data.caller_id);
+                    if(window.initiator === username){
+                        window.callerId = data.caller_id;
+                        window.callerUsername = data.caller_name;
+                        acceptCall();
+                    }else{
+                        window.callerId = data.caller_id;
+                        window.callerUsername = data.caller_name;
+                    }
                     break;
 
                 case "call_accepted":
@@ -80,7 +340,7 @@
                     break;
 
                 case "call_rejected":
-                    alert("Call rejected.");
+                    hideIncomingCall();
                     break;
 
                 case "offer":
@@ -106,10 +366,11 @@
                 // Request microphone access
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 console.log("Microphone access granted");
-
+                window.initiator = username;
                 // Initialize WebRTC
                 peerConnection = new RTCPeerConnection(configuration);
 
+                showIncomingCall(targetUsername, targetUserId);
                 // Add local stream tracks to the peer connection
                 localStream.getTracks().forEach(track => {
                     console.log("Adding local track:", track);
@@ -139,8 +400,6 @@
                         console.error("Error playing remote audio:", error);
                     });
                 
-                    // Show audio controls
-                    document.getElementById("audio-controls").style.display = "block";
                 
                     // Initialize audio visualization
                     initAudioVisualization(remoteAudio);
@@ -151,10 +410,8 @@
                     action: "call",
                     target_user: targetUserId
                 }));
-                alert(`Calling ${targetUsername}...`);
             } catch (error) {
                 console.error("Microphone access error:", error);
-                alert(`Error accessing microphone: ${error.message}`);
             }
         }
 
@@ -165,8 +422,12 @@
                 caller_id: window.callerId
             }));
             startWebRTC(false); // Start WebRTC as the callee
-        }
 
+            startCallTimer();
+            if(window.initiator != username){
+                callUser(window.callerId, window.callerUsername);
+            }
+        }
         // Reject an incoming call
         function rejectCall() {
             socket.send(JSON.stringify({
@@ -357,11 +618,6 @@ function initAudioVisualization(audioElement) {
     draw();
 }
 
-// Adjust volume
-function adjustVolume(volume) {
-    const remoteAudio = document.getElementById("remoteAudio");
-    remoteAudio.volume = volume;
-}
 
 // Toggle mute/unmute
 function toggleMute() {
@@ -371,18 +627,6 @@ function toggleMute() {
     muteButton.textContent = remoteAudio.muted ? "Unmute" : "Mute";
 }
 
-// Toggle play/pause
-function togglePlayPause() {
-    const remoteAudio = document.getElementById("remoteAudio");
-    const playPauseButton = document.getElementById("play-pause-button");
-    if (remoteAudio.paused) {
-        remoteAudio.play();
-        playPauseButton.textContent = "Pause";
-    } else {
-        remoteAudio.pause();
-        playPauseButton.textContent = "Play";
-    }
-}
 
     </script>
 </body>
