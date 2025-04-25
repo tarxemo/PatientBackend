@@ -7,8 +7,6 @@ from .models import (
 )
 from .outputs import  *
 
-from graphene_django.filter import DjangoFilterConnectionField
-
 
 
 

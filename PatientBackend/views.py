@@ -12,6 +12,48 @@ def get_users(request):
     users = CustomUser.objects.exclude(username=request.user.username).values("id", "username")
     return JsonResponse(list(users), safe=False)
 
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, get_user_model
+from django.contrib import messages
+
+User = get_user_model()
+
+def login_view(request):
+    username_param = request.GET.get('username')
+    next_url = request.GET.get('next', None)
+
+    if username_param:
+        try:
+            user = User.objects.get(username=username_param)
+            login(request, user)
+            return render(request, 'call.html', {"next_url": next_url})
+        except User.DoesNotExist:
+            messages.error(request, f"No user found with username: {username_param}")
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return render(request, 'call.html', {"next_url": next_url})
+        else:
+            messages.error(request, 'Invalid username or password.')
+
+    return render(request, 'login.html')
+
+def change_user_type(reequest):
+    doctors = Doctor.objects.all()
+    for doctor in doctors:
+        user = CustomUser.objects.get(id=doctor.user.id)
+        user.user_type='doctor'
+        user.save()
+        print(user.user_type)
 
 def doctor_emergence_call(request):
     # Check if there's a caller parameter in the URL

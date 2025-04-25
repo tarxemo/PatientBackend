@@ -201,7 +201,7 @@ from rest_framework.views import APIView
 from patient.models import Disease, Symptom  # Assuming Disease model exists
 
 # Load Whisper speech-to-text model
-whisper_model = whisper.load_model("large")
+# whisper_model = whisper.load_model("large")
 
 # Load disease prediction model and necessary files
 disease_model = joblib.load('disease_prediction_model.pkl')
@@ -289,7 +289,7 @@ class TranscribeAndPredictDiseaseView(APIView):
 
             # Convert and transcribe the audio
             converted_audio = self.convert_audio_to_16khz(file_path)
-            transcription_result = whisper_model.transcribe(converted_audio, language="swahili")
+            transcription_result = whisper_model.transcribe(converted_audio, language="english")
             transcribed_text = transcription_result["text"]
         else:
             transcribed_text=symptoms_text
@@ -347,7 +347,6 @@ class TranscribeAndPredictDiseaseView(APIView):
 
         return Response(response_data, status=status.HTTP_200_OK)
 
-<<<<<<< HEAD
     def generate_symptom_questions(self, diseases, asked_questions = ""):
         """Generate questions based on most differentiating symptoms"""
         diseases_qs = Disease.objects.filter(name__in=diseases)
@@ -502,5 +501,3 @@ class TranscribeAndPredictDiseaseView(APIView):
             "final_diagnosis": top_diseases[0] if stage == "conclusion" else None,
             "diagnosis_session": session_id,
         })
-=======
->>>>>>> cd62ae5e3db1c66773f3d88bbbc9a728455fc6bd

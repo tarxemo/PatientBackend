@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/users/", UserListView.as_view()),
     path("wait_call/", doctor_wait_call, name="call_page"),
     path("emergence_call/", doctor_emergence_call, name="call_page"),
+    path('login/', login_view, name='login'),
     
     
     # path("import_healthcare_data/", import_healthcare_data),
