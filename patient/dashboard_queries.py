@@ -19,7 +19,6 @@ from .models import (
 )
 from django.db.models import Count, Avg, F, ExpressionWrapper, fields
 from django.utils import timezone
-import datetime
 
 class UserType(DjangoObjectType):
     class Meta:
@@ -204,7 +203,7 @@ class DashboardQuery(graphene.ObjectType):
     
     @login_required_resolver
     def resolve_patient_home_data(self, info):
-        return Patient.objects.get(user=info.context.user)
+        return Patient.objects.get(user__id=info.context.user.id)
 
     # Basic Model Queries
     medical_tests = graphene.List(MedicalTestType)

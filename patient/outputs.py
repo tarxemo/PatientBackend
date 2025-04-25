@@ -144,7 +144,7 @@ class PrescriptionOutput(DjangoObjectType):
 
     class Meta:
         model = Prescription
-        fields = ("id", "consultation", "dosage", "instructions", "prescribed_at")
+        fields = ("id", "consultation", "medication", "dosage", "instructions", "prescribed_at")
 
     def resolve_consultation(self, info):
         return self.consultation
