@@ -29,7 +29,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
-from patient.models import Disease  # Assuming Disease model exists
+from patient.models import Disease, Patient  # Assuming Disease model exists
 
 
 class LoginMutation(graphene.Mutation):
@@ -96,7 +96,6 @@ class CreateUser(Mutation):
             user = CustomUser(
                 username=user_data.username,
                 email=user_data.email,
-                user_type=user_data.user_type if hasattr(user_data, 'user_type') else 'PATIENT',
                 phone_number=user_data.phone_number if hasattr(user_data, 'phone_number') else None,
                 address=user_data.address if hasattr(user_data, 'address') else None,
                 profile_picture=user_data.profile_picture if hasattr(user_data, 'profile_picture') else None,
@@ -105,9 +104,12 @@ class CreateUser(Mutation):
                 first_name=user_data.first_name if hasattr(user_data, 'first_name') else '',
                 last_name=user_data.last_name if hasattr(user_data, 'last_name') else ''
             )
-            
             user.set_password(user_data.password)
             user.save()
+            patient = Patient.objects.create(
+                user = user
+            )
+            patient.save()
             
             return CreateUser(user=user)
             

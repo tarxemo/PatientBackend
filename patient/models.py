@@ -12,8 +12,8 @@ class BaseProfile(models.Model):
 
 # Patient Model
 class Patient(BaseProfile):
-    date_of_birth = models.DateField()
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')])
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null=True, blank=True)
     medical_history = models.TextField(blank=True, null=True)
 
     def __str__(self):

@@ -3,7 +3,7 @@ from authApp.decorators import login_required_resolver
 import graphene
 from graphene_django import DjangoObjectType
 from django.db.models import Count, Avg, Q
-from datetime import datetime, timedelta, timezone
+import datetime
 from .models import (
     Disease, Patient, Doctor, Consultation, 
     PrescribedTest, Symptom, TestResult, Appointment
@@ -63,7 +63,7 @@ class PatientDashboardType(DjangoObjectType):
     can_request_prescription_refill = graphene.Boolean()
     
     def resolve_age(self, info):
-        return (datetime.now().date() - self.date_of_birth).days // 365
+        return (datetime.date.today() - (self.date_of_birth or datetime.date(2000, 1, 1))).days // 365
     
     def resolve_user(self, info):
         return self.user
@@ -75,11 +75,11 @@ class PatientDashboardType(DjangoObjectType):
             if filters.get('status'):
                 queryset = queryset.filter(status=filters['status'])
             if filters.get('upcoming'):
-                now = datetime.now()
+                now = datetime.datetime.now()
                 if filters['upcoming']:
-                    queryset = queryset.filter(dateTime__gt=now)
+                    queryset = queryset.filter(date_time__gt=now)
                 else:
-                    queryset = queryset.filter(dateTime__lte=now)
+                    queryset = queryset.filter(date_time__lte=now)
             if filters.get('limit'):
                 queryset = queryset[:filters['limit']]
         
@@ -120,10 +120,10 @@ class PatientDashboardType(DjangoObjectType):
         pending_tests = prescribed_tests.count() - completed_tests
         
         # Calculate appointment stats
-        now = datetime.now()
+        now = datetime.datetime.now()
         appointments = self.appointments.all()
-        upcoming_appointments = appointments.filter(dateTime__gt=now).count()
-        past_appointments = appointments.filter(dateTime__lte=now).count()
+        upcoming_appointments = appointments.filter(date_time__gt=now).count()
+        past_appointments = appointments.filter(date_time__lte=now).count()
         
         # Calculate average consultation duration (placeholder)
         average_consultation_duration = 30
@@ -266,7 +266,7 @@ class DashboardQuery(graphene.ObjectType):
         }
 
     def resolve_platform_usage(self, info, last_days=7):
-        end_date = timezone.now()
+        end_date = datetime.timezone.now()
         start_date = end_date - datetime.timedelta(days=last_days)
         
         consultations = Consultation.objects.filter(
