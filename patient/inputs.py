@@ -36,6 +36,9 @@ class LaboratoryInput(BaseProfileInput):
     lab_name = String(required=True)
     accreditation_number = String(required=True)
     location = String(required=True)
+    email=String(required=True)
+    description=String()
+    
 
 # Input for Symptom
 class SymptomInput(InputObjectType):
@@ -93,6 +96,15 @@ class MedicalTestInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String(required=True)
     description = graphene.String()
+
+from graphene import InputObjectType, ID, DateTime, String, Boolean
+
+class AppointmentInput(InputObjectType):
+    doctor = ID(required=True)  
+    date_time = DateTime(required=True)  
+    location = String(required=True) 
+    status = String(default_value="scheduled")  
+    notes = String()  
 
 
 

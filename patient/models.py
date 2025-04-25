@@ -48,7 +48,7 @@ class Laboratory(BaseProfile):
     location = models.CharField(max_length=255)
     description = models.CharField(max_length=1000, default="Ready to Serve you at best standards")
     created_at = models.DateTimeField(auto_now=True)
-
+    
     def __str__(self):
         return f"Lab: {self.lab_name}"
 
@@ -129,6 +129,30 @@ class Prescription(models.Model):
 
     def __str__(self):
         return f"Prescription for {self.consultation.patient.user.get_full_name()}"
+    
+class Appointment(models.Model):
+    STATUS_CHOICES = [
+        ('Scheduled', 'Scheduled'),
+        ('Completed', 'Completed'),
+        ('Cancelled', 'Cancelled'),
+    ]
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='appointments')
+    date_time = models.DateTimeField()
+    location = models.CharField(max_length=255)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='Scheduled'
+    )
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Appointment with {self.doctor.user.get_full_name()} for {self.patient.user.get_full_name()} on {self.date_time.strftime('%Y-%m-%d %H:%M')}"
+
+    class Meta:
+        ordering = ['date_time'] 
 
 
 
