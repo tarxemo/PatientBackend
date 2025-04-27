@@ -123,47 +123,104 @@ class PrescribedTestOutput(DjangoObjectType):
     def resolve_test(self, info):
         return self.test
 
+
+class TestOrderOutput(DjangoObjectType):
+    class Meta:
+        model = TestOrder
+        fields = "__all__"  # Include all fields of the TestOrder model
+
+    # Use PatientOutput to resolve the patient relationship
+    patient = graphene.Field(PatientOutput)
+
+    # Enum fields for display
+    priority_display = graphene.String()
+    status_display = graphene.String()
+
+    # Resolver for the priority field display
+    def resolve_priority_display(self, info):
+        return self.get_priority_display()
+
+    # Resolver for the status field display
+    def resolve_status_display(self, info):
+        return self.get_status_display()
+
+    # Optional: Explicit resolver for patient (although DjangoObjectType will handle this automatically)
+    def resolve_patient(self, info):
+        return self.patient
+    
+    
 # Output for TestResult
 class TestResultOutput(DjangoObjectType):
-    prescribed_test = Field(PrescribedTestOutput)
-    laboratory = Field(LaboratoryOutput)
+    test_order = graphene.Field(TestOrderOutput)  # Replaced prescribed_test with test_order
+    laboratory = graphene.Field(LaboratoryOutput)
 
     class Meta:
         model = TestResult
-        fields = ("id", "prescribed_test", "laboratory", "result_file", "notes", "uploaded_at")
+        fields = ("id", "test_order", "laboratory", "result_file", "notes", "uploaded_at")
 
-    def resolve_prescribed_test(self, info):
-        return self.prescribed_test
+    def resolve_test_order(self, info):
+        return self.test_order  # Resolving the test_order instead of prescribed_test
 
     def resolve_laboratory(self, info):
         return self.laboratory
+    
 
+ 
 # Output for Prescription
+ 
 class PrescriptionOutput(DjangoObjectType):
     consultation = Field(ConsultationOutput)
+    test_result = Field(TestResultOutput)  # 🆕 Add this line
 
     class Meta:
         model = Prescription
-        fields = ("id", "consultation", "medication", "dosage", "instructions", "prescribed_at")
+        fields = ("id", "consultation", "test_result", "medication", "dosage", "instructions", "prescribed_at")
 
     def resolve_consultation(self, info):
         return self.consultation
-    
+
+    def resolve_test_result(self, info):  # 🆕 Add this resolver
+        return self.test_result
+
+
+class TestOrderOutput(DjangoObjectType):
+    class Meta:
+        model = TestOrder
+        fields = "__all__"  # Include all fields of the TestOrder model
+
+    # Use PatientOutput to resolve the patient relationship
+    patient = graphene.Field(PatientOutput)
+
+    # Enum fields for display
+    priority_display = graphene.String()
+    status_display = graphene.String()
+
+    # Resolver for the priority field display
+    def resolve_priority_display(self, info):
+        return self.get_priority_display()
+
+    # Resolver for the status field display
+    def resolve_status_display(self, info):
+        return self.get_status_display()
+
+    # Optional: Explicit resolver for patient (although DjangoObjectType will handle this automatically)
+    def resolve_patient(self, info):
+        return self.patient
 
 #tesrresult
 
-class TestResultOutput(graphene.ObjectType):
-    id = graphene.ID()
-    prescribed_test = graphene.Field('patient.schema.PrescribedTestOutput')
-    laboratory = graphene.Field('patient.schema.LaboratoryOutput')
-    result_file_url = graphene.String()
-    notes = graphene.String()
-    uploaded_at = graphene.DateTime()
+# class TestResultOutput(graphene.ObjectType):
+#     id = graphene.ID()
+#     prescribed_test = graphene.Field('patient.schema.PrescribedTestOutput')
+#     laboratory = graphene.Field('patient.schema.LaboratoryOutput')
+#     result_file_url = graphene.String()
+#     notes = graphene.String()
+#     uploaded_at = graphene.DateTime()
 
-    def resolve_result_file_url(self, info):
-        if self.result_file:
-            return info.context.build_absolute_uri(self.result_file.url)
-        return None
+#     def resolve_result_file_url(self, info):
+#         if self.result_file:
+#             return info.context.build_absolute_uri(self.result_file.url)
+#         return None
     
 
 #new

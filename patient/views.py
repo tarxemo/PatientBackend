@@ -247,22 +247,22 @@ class UploadTestResult(Mutation):
         return UploadTestResult(test_result=test_result)
 
 # Mutation to create/update a Prescription
-class CreateOrUpdatePrescription(Mutation):
-    class Arguments:
-        input = PrescriptionInput(required=True)
+# class CreateOrUpdatePrescription(Mutation):
+#     class Arguments:
+#         input = PrescriptionInput(required=True)
 
-    prescription = Field(PrescriptionOutput)
+#     prescription = Field(PrescriptionOutput)
 
-    def mutate(self, info, input):
-        prescription, created = Prescription.objects.update_or_create(
-            consultation_id=input.consultation,
-            defaults={
-                "medication": input.medication,
-                "dosage": input.dosage,
-                "instructions": input.instructions,
-            }
-        )
-        return CreateOrUpdatePrescription(prescription=prescription)
+#     def mutate(self, info, input):
+#         prescription, created = Prescription.objects.update_or_create(
+#             consultation_id=input.consultation,
+#             defaults={
+#                 "medication": input.medication,
+#                 "dosage": input.dosage,
+#                 "instructions": input.instructions,
+#             }
+#         )
+#         return CreateOrUpdatePrescription(prescription=prescription)
 
 
 
@@ -623,26 +623,42 @@ class CreatePrescribedTest(graphene.Mutation):
         except Exception as e:
             raise Exception(f"Error: {str(e)}")
 
-
-
-
+ 
 class CreateTestResult(graphene.Mutation):
     class Arguments:
         input = TestResultInput(required=True)
         result_file = Upload()
 
     test_result = graphene.Field(TestResultType)
-    
+
     @staticmethod
     def mutate(root, info, input, result_file=None):
-        test_result = TestResult(
-            prescribed_test_id=input.prescribed_test_id,
-            laboratory_id=input.laboratory_id,
-            notes=input.notes,
-            result_file=result_file
-        )
-        test_result.save()
-        return CreateTestResult(test_result=test_result)
+        try:
+            # Retrieve the TestOrder instance based on the test_order_id
+            test_order = TestOrder.objects.get(id=input.test_order_id)
+            
+            # Retrieve the Laboratory instance based on the laboratory_id
+            laboratory = Laboratory.objects.get(id=input.laboratory_id)
+
+            # Create the TestResult object
+            test_result = TestResult(
+                test_order=test_order,  # Use the TestOrder instance
+                laboratory=laboratory,  # Use the Laboratory instance
+                notes=input.notes,
+                result_file=result_file
+            )
+
+            # Save the TestResult object to the database
+            test_result.save()
+
+            return CreateTestResult(test_result=test_result)
+
+        except TestOrder.DoesNotExist:
+            raise Exception(f"TestOrder with ID {input.test_order_id} does not exist")
+        except Laboratory.DoesNotExist:
+            raise Exception(f"Laboratory with ID {input.laboratory_id} does not exist")
+        except Exception as e:
+            raise Exception(f"Error: {str(e)}")
 
 class CreatePrescription(graphene.Mutation):
     class Arguments:
@@ -651,16 +667,17 @@ class CreatePrescription(graphene.Mutation):
     prescription = graphene.Field(PrescriptionOutput)
     
     @staticmethod
-    @staticmethod
     def mutate(root, info, input):
         prescription = Prescription(
-            consultation_id=input.consultation,  # ✅ fixed here
-            # medication=input.medication,
+            consultation_id=input.consultation,
+            test_result_id=input.test_result,  # 🆕 added this line
+            medication=input.medication,       # 🆕 restored medication field
             dosage=input.dosage,
             instructions=input.instructions
         )
         prescription.save()
         return CreatePrescription(prescription=prescription)
+
 
 # Update Mutations
 class UpdateDoctor(graphene.Mutation):
@@ -828,6 +845,23 @@ class DeleteConsultation(graphene.Mutation):
 
 # Add similar delete mutations for other models...
 
+class CreateTestOrder(graphene.Mutation):
+    class Arguments:
+        input = TestOrderInput(required=True)
+
+    test_order = graphene.Field(TestOrderOutput)
+
+    @staticmethod
+    def mutate(root, info, input):
+        test_order = TestOrder.objects.create(
+            order_id=input.order_id,
+            test_type_id=input.test_type_id,
+            patient_id=input.patient_id,
+            priority=input.priority,
+            status=input.status,
+        )
+        return CreateTestOrder(test_order=test_order)
+
 
 
  # schema/mutations.py
@@ -943,7 +977,7 @@ class PatientMutation(graphene.ObjectType):
     create_or_update_medical_test = CreateOrUpdateMedicalTest.Field()
     prescribe_test = PrescribeTest.Field()
     upload_test_result = UploadTestResult.Field()
-    create_or_update_prescription = CreateOrUpdatePrescription.Field()
+    # create_or_update_prescription = CreateOrUpdatePrescription.Field()
     predict_disease = PredictDisease.Field()
     create_test_result = CreateTestResult.Field()
 
