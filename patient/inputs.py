@@ -81,10 +81,12 @@ class TestResultInput(InputObjectType):
 
 # Input for Prescription
 class PrescriptionInput(InputObjectType):
-    consultation = ID(required=True)  # Consultation ID
-    # medication = String(required=True)
+    consultation = ID(required=True)
+    test_result = ID(required=True)  # 🆕 added
+    medication = String(required=True)  # 🆕 added back
     dosage = String(required=True)
     instructions = String()
+
 
 
 class TestResultInput(graphene.InputObjectType):
@@ -93,6 +95,7 @@ class TestResultInput(graphene.InputObjectType):
     result_file = graphene.String(required=True, description="Base64 encoded file content")
     file_name = graphene.String(required=True, description="Name of the file with extension")
     notes = graphene.String(description="Additional notes about the test result")
+
 
 class MedicalTestInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -177,12 +180,15 @@ class PrescribedTestInput(graphene.InputObjectType):
     test_ids = graphene.List(graphene.ID, required=True)
     notes = graphene.String()
 
+import graphene
+
 class TestResultInput(graphene.InputObjectType):
     id = graphene.ID()
-    prescribed_test_id = graphene.ID(required=True)
+    test_order_id = graphene.ID(required=True)  # Change prescribed_test_id to test_order_id
     laboratory_id = graphene.ID(required=True)
     result_file = graphene.String()  # path or base64 string depending on setup
     notes = graphene.String()
+
 
 
 # schema/inputs.py

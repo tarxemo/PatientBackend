@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from authApp.models import *
@@ -109,19 +111,11 @@ class PrescribedTest(models.Model):
 
 
 
-class TestResult(models.Model):
-    prescribed_test = models.OneToOneField(PrescribedTest, on_delete=models.CASCADE, related_name='test_result')
-    laboratory = models.ForeignKey(Laboratory, on_delete=models.CASCADE, related_name='test_results')
-    result_file = models.FileField(upload_to='test_results/')
-    notes = models.TextField(blank=True, null=True)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Test Result: {self.prescribed_test.test.name} for {self.prescribed_test.consultation.patient.user.get_full_name()}"
 
 # Prescription Model
 class Prescription(models.Model):
     consultation = models.OneToOneField(Consultation, on_delete=models.CASCADE, related_name='prescription')
+    test_result = models.ForeignKey('TestResult', on_delete=models.SET_NULL, null=True, blank=True, related_name='prescriptions')
     medication = models.TextField()
     dosage = models.TextField()
     instructions = models.TextField(blank=True, null=True)
@@ -129,7 +123,7 @@ class Prescription(models.Model):
 
     def __str__(self):
         return f"Prescription for {self.consultation.patient.user.get_full_name()}"
-    
+
 class Appointment(models.Model):
     STATUS_CHOICES = [
         ('Scheduled', 'Scheduled'),
@@ -157,8 +151,7 @@ class Appointment(models.Model):
 
 
 
-from django.db import models
-from django.utils import timezone
+ 
 
 class TestOrder(models.Model):
     PRIORITY_CHOICES = [
@@ -184,3 +177,15 @@ class TestOrder(models.Model):
 
     def __str__(self):
         return f"Order #{self.order_id} - {self.test_type.name} for {self.patient.user.get_full_name()}"
+
+class TestResult(models.Model):
+    laboratory = models.ForeignKey(Laboratory, on_delete=models.CASCADE, related_name='test_results')
+    result_file = models.FileField(upload_to='test_results/')
+    notes = models.TextField(blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    # ForeignKey to TestOrder
+    test_order = models.ForeignKey(TestOrder, on_delete=models.CASCADE, related_name='test_results',null=True,)
+
+    def __str__(self):
+        return f"Test Result for Order #{self.test_order.order_id} - {self.test_order.test_type.name} for {self.test_order.patient.user.get_full_name()}"

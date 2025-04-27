@@ -152,23 +152,6 @@ class PatientQuery(ObjectType):
     def resolve_test_results_by_prescribed_test(self, info, prescribed_test_id):
         return TestResult.objects.filter(prescribed_test_id=prescribed_test_id)
 
-# Query to fetch a single Prescription by ID
-    prescription = Field(PrescriptionOutput, id=ID(required=True))
-
-    def resolve_prescription(self, info, id):
-        return Prescription.objects.get(id=id)
-
-# Query to fetch all Prescriptions
-    prescriptions = List(PrescriptionOutput)
-
-    def resolve_prescriptions(self, info):
-        return Prescription.objects.all()
-
-# Query to fetch Prescriptions by Consultation ID
-    prescriptions_by_consultation = List(PrescriptionOutput, consultation_id=ID(required=True))
-
-    def resolve_prescriptions_by_consultation(self, info, consultation_id):
-        return Prescription.objects.filter(consultation_id=consultation_id)
 
 # Query to fetch medical tests 
 
@@ -184,7 +167,11 @@ class PatientQuery(ObjectType):
         except MedicalTest.DoesNotExist:
             return None
         
+        
+    test_order = graphene.Field(TestOrderOutput, id=graphene.ID(required=True))
 
+    def resolve_test_order(self, info, id):
+        return TestOrder.objects.get(id=id)
 
 
 
@@ -204,6 +191,23 @@ class PatientQuery(ObjectType):
             return None
 
 
+# Query to fetch a single Prescription by ID
+    prescription = Field(PrescriptionOutput, id=ID(required=True))
+
+    def resolve_prescription(self, info, id):
+        return Prescription.objects.get(id=id)
+
+# Query to fetch all Prescriptions
+    prescriptions = List(PrescriptionOutput)
+
+    def resolve_prescriptions(self, info):
+        return Prescription.objects.all()
+
+# Query to fetch Prescriptions by Consultation ID
+    prescriptions_by_consultation = List(PrescriptionOutput, consultation_id=ID(required=True))
+
+    def resolve_prescriptions_by_consultation(self, info, consultation_id):
+        return Prescription.objects.filter(consultation_id=consultation_id)
 
 
 
