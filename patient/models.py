@@ -186,6 +186,6 @@ class TestResult(models.Model):
     
     # ForeignKey to TestOrder
     test_order = models.ForeignKey(TestOrder, on_delete=models.CASCADE, related_name='test_results',null=True,)
-
+    prescribed_test = models.ForeignKey(PrescribedTest, on_delete=models.CASCADE, related_name='tests',null=True,)
     def __str__(self):
         return f"Test Result for Order #{self.test_order.order_id} - {self.test_order.test_type.name} for {self.test_order.patient.user.get_full_name()}"
