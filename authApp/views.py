@@ -190,7 +190,7 @@ import shutil
 import subprocess
 import json
 import joblib
-# import whisper
+import whisper
 import numpy as np
 import uuid
 from django.conf import settings
