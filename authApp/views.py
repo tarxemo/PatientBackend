@@ -274,7 +274,7 @@ class TranscribeAndPredictDiseaseView(APIView):
 
             # Convert and transcribe the audio
             converted_audio = self.convert_audio_to_16khz(file_path)
-            transcription_result = whisper_model.transcribe(converted_audio, language="english")
+            transcription_result = whisper_model.transcribe(converted_audio, language="swahili")
             transcribed_text = transcription_result["text"]
         else:
             transcribed_text=symptoms_text # Return error if any
