@@ -43,7 +43,7 @@ class LabTech(BaseProfile):
         return f"Dr. {self.user.get_full_name()} ({self.specialization})"
 
 # Laboratory Model
-class Laboratory(BaseProfile):
+class Laboratory(models.Model):
     lab_tech = models.ForeignKey(LabTech, on_delete=models.CASCADE, null=True, blank=True)
     lab_name = models.CharField(max_length=100)
     accreditation_number = models.CharField(max_length=50, unique=True)

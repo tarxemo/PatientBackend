@@ -106,24 +106,7 @@ class PatientQuery(ObjectType):
 
  
 
-# # Query to fetch a single TestResult by ID
-#     test_result = Field(TestResultOutput, id=ID(required=True))
-
-#     def resolve_test_result(self, info, id):
-#         return TestResult.objects.get(id=id)
-
-# # Query to fetch all TestResults
-#     test_results = List(TestResultOutput)
-
-#     def resolve_test_results(self, info):
-#         return TestResult.objects.all()
-
-# # Query to fetch TestResults by PrescribedTest ID
-#     test_results_by_prescribed_test = List(TestResultOutput, prescribed_test_id=ID(required=True))
-
-#     def resolve_test_results_by_prescribed_test(self, info, prescribed_test_id):
-#         return TestResult.objects.filter(prescribed_test_id=prescribed_test_id)
-
+ 
 
 
 

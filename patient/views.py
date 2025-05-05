@@ -679,6 +679,10 @@ class CreatePrescribedTest(graphene.Mutation):
 
  
 
+ 
+
+
+
 class CreateTestResult(graphene.Mutation):
     class Arguments:
         test_order_id = graphene.ID(required=True)
@@ -689,59 +693,53 @@ class CreateTestResult(graphene.Mutation):
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
 
-    @classmethod
-    def mutate(cls, root, info, test_order_id, notes=None, result_file=None):
+    @login_required_resolver
+    def mutate(root, info, test_order_id, notes=None, result_file=None):
         user = info.context.user
-        
-        # Authentication check
-        if not user.is_authenticated:
-            return cls(errors=["Authentication required"], success=False)
-        
-        # Authorization check - must be a lab technician
+
         try:
             lab_technician = user.labtech_profile
         except AttributeError:
-            return cls(errors=["Only lab technicians can create test results"], success=False)
-        
-        # Get the laboratory the technician belongs to
-        try:
-            laboratory = lab_technician.laboratory
-        except Laboratory.DoesNotExist:
-            return cls(errors=["Lab technician is not assigned to any laboratory"], success=False)
+            return CreateTestResult(
+                errors=["Only lab technicians can create test results"],
+                success=False
+            )
 
         try:
-            # Verify test order exists
-            test_order = TestOrder.objects.select_related('patient').get(
-                id=test_order_id
+            laboratory = Laboratory.objects.get(lab_tech=lab_technician)
+        except Laboratory.DoesNotExist:
+            return CreateTestResult(
+                errors=["Lab technician is not assigned to any laboratory"],
+                success=False
             )
-            
-            # Create the TestResult object
+
+        try:
+            test_order = TestOrder.objects.select_related('patient').get(id=test_order_id)
+
             test_result = TestResult.objects.create(
                 test_order=test_order,
                 laboratory=laboratory,
                 notes=notes or "",
-                result_file=result_file,
-                # No created_by field in your model, but you could add it if needed
+                result_file=result_file
             )
 
-            # Update test order status
             test_order.status = 'completed'
             test_order.save(update_fields=['status'])
 
-            return cls(
+            return CreateTestResult(
                 test_result=test_result,
                 success=True
             )
 
         except TestOrder.DoesNotExist:
-            return cls(
+            return CreateTestResult(
                 errors=["Test order not found"],
                 success=False
             )
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return cls(
+            return CreateTestResult(
                 errors=[f"An error occurred: {str(e)}"],
                 success=False
             )
@@ -975,54 +973,75 @@ class DeleteConsultation(graphene.Mutation):
 
 # Add similar delete mutations for other models...
 
-class CreateTestOrder(graphene.Mutation):
-    class Arguments:
-        input = TestOrderInput(required=True)
-
-    test_order = graphene.Field(TestOrderOutput)
-
-    @staticmethod
-    def mutate(root, info, input):
-        test_order = TestOrder.objects.create(
-            order_id=input.order_id,
-            test_type_id=input.test_type_id,
-            patient_id=input.patient_id,
-            priority=input.priority,
-            status=input.status,
-        )
-        return CreateTestOrder(test_order=test_order)
-
-
-
- # schema/mutations.py
-import graphene
-from graphql import GraphQLError
-from django.utils import timezone
-from .models import TestOrder
-from .inputs import TestOrderInput, TestOrderUpdateInput
+ 
 import uuid
-
+from django.utils import timezone
+import graphene
+from graphql_jwt.decorators import login_required
+ 
 class CreateTestOrder(graphene.Mutation):
     class Arguments:
         input = TestOrderInput(required=True)
 
     test_order = graphene.Field(TestOrderType)
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
 
     @staticmethod
+    @login_required_resolver
     def mutate(root, info, input):
-        # Generate a unique order ID
-        order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        user = info.context.user
+
+        # ✅ Ensure the user is a doctor
+        try:
+            doctor = user.doctor_profile
+        except AttributeError:
+            return CreateTestOrder(success=False, errors=["Only doctors can create test orders."])
+
+        try:
+            order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+
+            test_order = TestOrder.objects.create(
+                order_id=order_id,
+                test_type_id=input.test_type_id,
+                patient_id=input.patient_id,
+                priority=input.priority or 'normal',
+                status=input.status or 'pending',
+                received_time=timezone.now()
+            )
+
+            return CreateTestOrder(test_order=test_order, success=True, errors=[])
+
+        except Exception as e:
+            return CreateTestOrder(success=False, errors=[f"Error creating test order: {str(e)}"])
+
+
+ 
+
+# class CreateTestOrder(graphene.Mutation):
+#     class Arguments:
+#         input = TestOrderInput(required=True)
+
+#     test_order = graphene.Field(TestOrderType)
+
+#     @staticmethod
+#     def mutate(root, info, input):
+#         # Generate a unique order ID
+#         order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
         
-        test_order = TestOrder(
-            order_id=order_id,  # Add this line
-            test_type_id=input.test_type_id,
-            patient_id=input.patient_id,
-            priority=input.priority or 'normal',
-            status=input.status or 'pending',
-            received_time=timezone.now()
-        )
-        test_order.save()
-        return CreateTestOrder(test_order=test_order)
+#         test_order = TestOrder(
+#             order_id=order_id,  # Add this line
+#             test_type_id=input.test_type_id,
+#             patient_id=input.patient_id,
+#             priority=input.priority or 'normal',
+#             status=input.status or 'pending',
+#             received_time=timezone.now()
+#         )
+#         test_order.save()
+#         return CreateTestOrder(test_order=test_order)
+
+
+
 class UpdateTestOrder(graphene.Mutation):
     class Arguments:
         input = TestOrderUpdateInput(required=True)
