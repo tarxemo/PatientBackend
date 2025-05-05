@@ -5,7 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from authApp.models import *
 # Base User Profile Model (Abstract)
 class BaseProfile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="%(class)s_profile" )
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     profile_image = models.ImageField(upload_to="profile_images/", null=True, blank=True)
@@ -14,6 +14,7 @@ class BaseProfile(models.Model):
 
 # Patient Model
 class Patient(BaseProfile):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="patient")
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null=True, blank=True)
     medical_history = models.TextField(blank=True, null=True)
@@ -114,15 +115,15 @@ class PrescribedTest(models.Model):
 
 # Prescription Model
 class Prescription(models.Model):
-    consultation = models.OneToOneField(Consultation, on_delete=models.CASCADE, related_name='prescription')
-    test_result = models.ForeignKey('TestResult', on_delete=models.SET_NULL, null=True, blank=True, related_name='prescriptions')
-    medication = models.TextField()
-    dosage = models.TextField()
-    instructions = models.TextField(blank=True, null=True)
-    prescribed_at = models.DateTimeField(auto_now_add=True)
+    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
+    doctor = models.ForeignKey('Doctor', on_delete=models.SET_NULL, null=True, blank=True)  # Link to Doctor model
+    medication = models.CharField(max_length=255)
+    dosage = models.CharField(max_length=255)
+    instructions = models.TextField(blank=True, null=True, default="")
+    test_result = models.ForeignKey('TestResult', on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"Prescription for {self.consultation.patient.user.get_full_name()}"
+        return f"Prescription for {self.medication}"
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
@@ -187,5 +188,5 @@ class TestResult(models.Model):
     # ForeignKey to TestOrder
     test_order = models.ForeignKey(TestOrder, on_delete=models.CASCADE, related_name='test_results',null=True,)
 
-    def __str__(self):
-        return f"Test Result for Order #{self.test_order.order_id} - {self.test_order.test_type.name} for {self.test_order.patient.user.get_full_name()}"
+    # def __str__(self):
+    #     return f"Test Result for Order #{self.test_order.order_id} - {self.test_order.test_type.name} for {self.test_order.patient.user.get_full_name()}"

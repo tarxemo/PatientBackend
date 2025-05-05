@@ -246,24 +246,7 @@ class UploadTestResult(Mutation):
         )
         return UploadTestResult(test_result=test_result)
 
-# Mutation to create/update a Prescription
-# class CreateOrUpdatePrescription(Mutation):
-#     class Arguments:
-#         input = PrescriptionInput(required=True)
-
-#     prescription = Field(PrescriptionOutput)
-
-#     def mutate(self, info, input):
-#         prescription, created = Prescription.objects.update_or_create(
-#             consultation_id=input.consultation,
-#             defaults={
-#                 "medication": input.medication,
-#                 "dosage": input.dosage,
-#                 "instructions": input.instructions,
-#             }
-#         )
-#         return CreateOrUpdatePrescription(prescription=prescription)
-
+ 
 
 
 
@@ -271,6 +254,7 @@ class UploadTestResult(Mutation):
 import base64
 import datetime
 from django.core.files.base import ContentFile
+ 
 
 class CreateTestResult(Mutation):
     class Arguments:
@@ -278,12 +262,22 @@ class CreateTestResult(Mutation):
 
     test_result = Field(TestResultOutput)
 
-    @classmethod
+    
+    @login_required_resolver
     def mutate(cls, root, info, input):
+        user = info.context.user
+
+        # Ensure only LabTechs can create TestResults
+        if not hasattr(user, "labtech"):
+            raise Exception("Only authorized lab technicians can create test results.")
+
         try:
-            # Validate inputs
             prescribed_test = PrescribedTest.objects.get(pk=input.prescribed_test_id)
             laboratory = Laboratory.objects.get(pk=input.laboratory_id)
+
+            # Optional: Confirm that this lab belongs to the labtech user
+            if laboratory.lab_tech != user.labtech:
+                raise Exception("You do not have permission to add results to this laboratory.")
 
             # Decode base64 file
             file_data = base64.b64decode(input.result_file)
@@ -300,12 +294,11 @@ class CreateTestResult(Mutation):
             return CreateTestResult(test_result=test_result)
 
         except PrescribedTest.DoesNotExist:
-            raise Exception("Prescribed test not found")
+            raise Exception("Prescribed test not found.")
         except Laboratory.DoesNotExist:
-            raise Exception("Laboratory not found")
+            raise Exception("Laboratory not found.")
         except Exception as e:
             raise Exception(f"Failed to create test result: {str(e)}")
-
 
 
 
@@ -514,27 +507,88 @@ class CreateDisease(graphene.Mutation):
             
         return CreateDisease(disease=disease)
 
+ 
+
+
 class CreateConsultation(graphene.Mutation):
     class Arguments:
         input = ConsultationInput(required=True)
 
     consultation = graphene.Field(ConsultationType)
+    success = graphene.Boolean()
+    message = graphene.String()
     
     @staticmethod
     def mutate(root, info, input):
-        consultation = Consultation(
-            patient_id=input.patient_id,
-            doctor_id=input.doctor_id if input.doctor_id else None,
-            disease_id=input.disease_id if input.disease_id else None,
-            status=input.status if input.status else 'Pending'
-        )
-        consultation.save()
-        
-        if input.symptoms:
-            consultation.symptoms.set(input.symptoms)
-            
-        return CreateConsultation(consultation=consultation)
+        user = info.context.user
 
+        # Only authenticated doctors or staff can create consultations
+        if not user.is_authenticated or not (user.is_staff or hasattr(user, 'doctor')):
+            return CreateConsultation(
+                success=False,
+                message="Only staff or doctors can create consultations",
+                consultation=None
+            )
+
+        # Ensure patient exists
+        try:
+            patient = Patient.objects.get(id=input.patient_id)
+        except Patient.DoesNotExist:
+            return CreateConsultation(
+                success=False,
+                message="Patient not found",
+                consultation=None
+            )
+
+        # Doctor resolution
+        if input.doctor_id:
+            try:
+                doctor = Doctor.objects.get(id=input.doctor_id)
+                if not doctor.user.is_verified:
+                    return CreateConsultation(
+                        success=False,
+                        message="Specified doctor is not verified",
+                        consultation=None
+                    )
+            except Doctor.DoesNotExist:
+                return CreateConsultation(
+                    success=False,
+                    message="Doctor not found",
+                    consultation=None
+                )
+        else:
+            # Default to current user if they are a doctor
+            if hasattr(user, 'doctor'):
+                doctor = user.doctor
+                if not doctor.user.is_verified:
+                    return CreateConsultation(
+                        success=False,
+                        message="Your doctor account is not verified",
+                        consultation=None
+                    )
+            else:
+                doctor = None  # Optional if doctor is not required
+
+        # Create the consultation
+        consultation = Consultation.objects.create(
+            patient=patient,
+            doctor=doctor,
+            status='Pending'
+        )
+
+        # Attach symptoms
+        if input.symptoms:
+            symptoms = Symptom.objects.filter(id__in=input.symptoms)
+            consultation.symptoms.set(symptoms)
+
+        return CreateConsultation(
+            success=True,
+            message="Consultation created successfully",
+            consultation=consultation
+        )
+
+
+        
 class CreateMedicalTest(graphene.Mutation):
     class Arguments:
         input = MedicalTestInput(required=True)
@@ -624,59 +678,135 @@ class CreatePrescribedTest(graphene.Mutation):
             raise Exception(f"Error: {str(e)}")
 
  
+
 class CreateTestResult(graphene.Mutation):
     class Arguments:
-        input = TestResultInput(required=True)
-        result_file = Upload()
+        test_order_id = graphene.ID(required=True)
+        notes = graphene.String()
+        result_file = Upload(required=False)
 
     test_result = graphene.Field(TestResultType)
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
 
-    @staticmethod
-    def mutate(root, info, input, result_file=None):
+    @classmethod
+    def mutate(cls, root, info, test_order_id, notes=None, result_file=None):
+        user = info.context.user
+        
+        # Authentication check
+        if not user.is_authenticated:
+            return cls(errors=["Authentication required"], success=False)
+        
+        # Authorization check - must be a lab technician
         try:
-            # Retrieve the TestOrder instance based on the test_order_id
-            test_order = TestOrder.objects.get(id=input.test_order_id)
-            
-            # Retrieve the Laboratory instance based on the laboratory_id
-            laboratory = Laboratory.objects.get(id=input.laboratory_id)
+            lab_technician = user.labtech_profile
+        except AttributeError:
+            return cls(errors=["Only lab technicians can create test results"], success=False)
+        
+        # Get the laboratory the technician belongs to
+        try:
+            laboratory = lab_technician.laboratory
+        except Laboratory.DoesNotExist:
+            return cls(errors=["Lab technician is not assigned to any laboratory"], success=False)
 
+        try:
+            # Verify test order exists
+            test_order = TestOrder.objects.select_related('patient').get(
+                id=test_order_id
+            )
+            
             # Create the TestResult object
-            test_result = TestResult(
-                test_order=test_order,  # Use the TestOrder instance
-                laboratory=laboratory,  # Use the Laboratory instance
-                notes=input.notes,
-                result_file=result_file
+            test_result = TestResult.objects.create(
+                test_order=test_order,
+                laboratory=laboratory,
+                notes=notes or "",
+                result_file=result_file,
+                # No created_by field in your model, but you could add it if needed
             )
 
-            # Save the TestResult object to the database
-            test_result.save()
+            # Update test order status
+            test_order.status = 'completed'
+            test_order.save(update_fields=['status'])
 
-            return CreateTestResult(test_result=test_result)
+            return cls(
+                test_result=test_result,
+                success=True
+            )
 
         except TestOrder.DoesNotExist:
-            raise Exception(f"TestOrder with ID {input.test_order_id} does not exist")
-        except Laboratory.DoesNotExist:
-            raise Exception(f"Laboratory with ID {input.laboratory_id} does not exist")
+            return cls(
+                errors=["Test order not found"],
+                success=False
+            )
         except Exception as e:
-            raise Exception(f"Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return cls(
+                errors=[f"An error occurred: {str(e)}"],
+                success=False
+            )
 
-class CreatePrescription(graphene.Mutation):
+class PrescriptionOutput(DjangoObjectType):
+    class Meta:
+        model = Prescription
+        fields = "__all__"
+
+
+
+
+
+class CreatePrescription(Mutation):
     class Arguments:
-        input = PrescriptionInput(required=True)
+        consultation_id = ID(required=True)
+        medication = String(required=True)
+        dosage = String(required=True)
+        instructions = String(required=False)
+        test_result_id = Int(required=False)
+        doctor_id = ID(required=True)  # Accept doctor_id as argument
 
-    prescription = graphene.Field(PrescriptionOutput)
-    
-    @staticmethod
-    def mutate(root, info, input):
-        prescription = Prescription(
-            consultation_id=input.consultation,
-            test_result_id=input.test_result,  # 🆕 added this line
-            medication=input.medication,       # 🆕 restored medication field
-            dosage=input.dosage,
-            instructions=input.instructions
-        )
-        prescription.save()
-        return CreatePrescription(prescription=prescription)
+    prescription = Field(PrescriptionOutput)
+    errors = List(String)
+
+    @classmethod
+    def mutate(cls, root, info, consultation_id, medication, dosage, instructions, test_result_id, doctor_id):
+        user = info.context.user
+
+        # Authentication check
+        if not user.is_authenticated:
+            return CreatePrescription(errors=["Authentication required"])
+
+        # Check if the user is a doctor (if required)
+        try:
+            doctor = Doctor.objects.get(id=doctor_id)  # Fetch the doctor using the provided doctor_id
+        except Doctor.DoesNotExist:
+            return CreatePrescription(errors=["Doctor not found"])
+
+        # Ensure the consultation is assigned to the correct doctor
+        try:
+            consultation = Consultation.objects.get(id=consultation_id, doctor=doctor)
+        except Consultation.DoesNotExist:
+            return CreatePrescription(errors=["Consultation not found or not assigned to this doctor"])
+
+        # Create the prescription, explicitly assign the doctor
+        try:
+            prescription = Prescription.objects.create(
+                consultation=consultation,
+                medication=medication,
+                dosage=dosage,
+                instructions=instructions or "",
+                test_result_id=test_result_id,
+                doctor=doctor  # Pass the doctor_id explicitly
+            )
+
+            return CreatePrescription(prescription=prescription)
+
+        except Exception as e:
+            return CreatePrescription(errors=[f"Failed to create prescription: {str(e)}"])
+
+
+
+
+
 
 
 # Update Mutations
