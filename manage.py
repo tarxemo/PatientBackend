@@ -2,6 +2,7 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from authApp.tokenizer_utils import syllable_tokenizer
 
 
 def main():

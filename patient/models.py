@@ -174,7 +174,7 @@ class TestOrder(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
     received_time = models.DateTimeField(default=timezone.now)
-
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, null=True, blank=True)
     def __str__(self):
         return f"Order #{self.order_id} - {self.test_type.name} for {self.patient.user.get_full_name()}"
 
@@ -183,7 +183,8 @@ class TestResult(models.Model):
     result_file = models.FileField(upload_to='test_results/')
     notes = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    
+    prescribed_test = models.OneToOneField(PrescribedTest, on_delete=models.CASCADE, related_name='test_result', null=True, blank=True)
+
     # ForeignKey to TestOrder
     test_order = models.ForeignKey(TestOrder, on_delete=models.CASCADE, related_name='test_results',null=True,)
 

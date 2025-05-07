@@ -18,8 +18,8 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     
     
-    # path("import_healthcare_data/", import_healthcare_data),
-    # path('import_diseases_and_symptoms/', import_diseases_and_symptoms),
+    path("import_healthcare_data/", import_healthcare_data),
+    path('import_diseases_and_symptoms/', import_diseases_and_symptoms),
     # path("update_symptoms/", update_symptoms)
     path('api/analyze-symptoms/', TranscribeAndPredictDiseaseView.as_view(), name='analyze-symptoms'),
     path('api/follow-up/', TranscribeAndPredictDiseaseView.as_view(), name='follow-up'),

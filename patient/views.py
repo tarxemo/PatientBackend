@@ -514,25 +514,40 @@ class CreateDisease(graphene.Mutation):
             
         return CreateDisease(disease=disease)
 
+# Mutations
 class CreateConsultation(graphene.Mutation):
     class Arguments:
         input = ConsultationInput(required=True)
 
     consultation = graphene.Field(ConsultationType)
     
-    @staticmethod
+    @login_required_resolver
     def mutate(root, info, input):
-        consultation = Consultation(
-            patient_id=input.patient_id,
-            doctor_id=input.doctor_id if input.doctor_id else None,
-            disease_id=input.disease_id if input.disease_id else None,
-            status=input.status if input.status else 'Pending'
-        )
+        disease = Disease.objects.get(pk=input.disease_id) if input.disease_id else None
+        if info.context.user.user_type == "patient":
+            doctor = Doctor.objects.get(pk=input.doctor_id) if input.doctor_id else None
+            print(info.context.user)
+            consultation = Consultation(
+                patient=Patient.objects.get(user=info.context.user),
+                disease=disease,
+                doctor=doctor,
+                status=input.status or 'Pending'
+            )
+        if info.context.user.user_type == "doctor":
+            patient = Patient.objects.get(pk=input.doctor_id) if input.doctor_id else None
+            consultation = Consultation(
+                doctor=Doctor.objects.get(user=info.context.user),
+                disease=disease,
+                patient=patient,
+                status=input.status or 'Pending'
+            )
+        
         consultation.save()
         
-        if input.symptoms:
-            consultation.symptoms.set(input.symptoms)
-            
+        if input.symptomIds:
+            symptoms = Symptom.objects.filter(id__in=input.symptomIds)
+            consultation.symptoms.set(symptoms)
+        
         return CreateConsultation(consultation=consultation)
 
 class CreateMedicalTest(graphene.Mutation):

@@ -1,5 +1,7 @@
 import graphene
 from graphene import ObjectType, String, Int, Float, Boolean, Date, DateTime, ID, List, Field
+
+from authApp.decorators import login_required_resolver
 # from graphene_django.filter import DjangoFilterConnectionField
 from .models import (
     Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
@@ -35,8 +37,12 @@ class PatientQuery(ObjectType):
 # Query to fetch all Doctors
     doctors = List(DoctorOutput)
 
+    @login_required_resolver
     def resolve_doctors(self, info):
-        return Doctor.objects.all()
+        if info.context.user.user_type == "patient":
+            return Doctor.objects.all()
+        else:
+            return Patient.objects.all()
 
 # Query to fetch a single Laboratory by ID
     laboratory = Field(LaboratoryOutput, id=ID(required=True))
@@ -83,7 +89,13 @@ class PatientQuery(ObjectType):
 # Query to fetch all Consultations
     consultations = List(ConsultationOutput)
 
+    @login_required_resolver
     def resolve_consultations(self, info):
+        user = info.context.user
+        if user.user_type == "patient":
+            return Consultation.objects.filter(patient__user=user)
+        if user.user_type == "doctor":
+            return Consultation.objects.filter(doctor__user=user)
         return Consultation.objects.all()
 
 # Query to fetch Consultations by Patient ID
@@ -141,10 +153,17 @@ class PatientQuery(ObjectType):
         return TestResult.objects.get(id=id)
 
 # Query to fetch all TestResults
-    test_results = List(TestResultOutput)
+    all_test_results = List(TestResultOutput)
 
-    def resolve_test_results(self, info):
-        return TestResult.objects.all()
+    @login_required_resolver
+    def resolve_all_test_results(self, info):
+        user = info.context.user
+        if user.user_type == "patient":
+            return TestResult.objects.filter(test_order__patient__user = user)
+        if user.user_type == "doctor":
+            return TestResult.objects.filter(test_order__doctor__user = user) or None
+        else:
+            return TestResult.objects.all()
 
 # Query to fetch TestResults by PrescribedTest ID
     test_results_by_prescribed_test = List(TestResultOutput, prescribed_test_id=ID(required=True))
@@ -280,7 +299,10 @@ class PatientQuery(ObjectType):
     
     test_orders = graphene.List(TestOrderType)
     
+    @login_required_resolver
     def resolve_test_orders(self, info):
+        if info.context.user.user_type == 'patient':
+            return TestOrder.objects.filter(patient__user = info.context.user)
         return TestOrder.objects.all()
     
     def resolve_test_order(self, info, id):

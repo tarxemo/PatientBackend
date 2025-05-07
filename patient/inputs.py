@@ -163,12 +163,13 @@ class DiseaseInput(graphene.InputObjectType):
 
 class ConsultationInput(graphene.InputObjectType):
     id = graphene.ID()
-    patient_id = graphene.ID(required=True)
+    patient_id = graphene.ID()
     doctor_id = graphene.ID()
-    symptoms = graphene.List(graphene.ID)
+    symptomIds = graphene.List(graphene.ID)
     disease_id = graphene.ID()
     status = graphene.String()
-
+    notes = graphene.String()
+    
 class MedicalTestInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String(required=True)
