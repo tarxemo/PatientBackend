@@ -10,3 +10,26 @@ media/uploads/a1036944a7ad4d70b6b75d2b0c8612c6_recording_processed.wav
 media/uploads/a1036944a7ad4d70b6b75d2b0c8612c6_recording.wav
 media/uploads/cecec15200df474ba66120753cbdab42_recording_processed.wav
 media/uploads/cecec15200df474ba66120753cbdab42_recording.wav
+# Ignore these files
+.env
+*.log
+__pycache__/
+node_modules/
+# Ignore compiled Python files
+*.pyc
+__pycache__/
+*/__pycache__/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django migrations
+*/migrations/__pycache__/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Optional: ignore virtual environments if needed
+venv/
+.env/
