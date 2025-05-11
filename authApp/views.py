@@ -303,11 +303,7 @@ class TranscribeAndPredictDiseaseView(APIView):
         top_indices = np.argsort(prediction)[::-1][:3]
         top_predictions = classes[top_indices]
         top_probabilities = prediction[top_indices] * 100
-<<<<<<< HEAD
         print(top_probabilities)
-=======
-
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
         # Create diagnostic session
         session_id = str(uuid.uuid4())
         diagnosis_state = {
@@ -406,16 +402,10 @@ class TranscribeAndPredictDiseaseView(APIView):
         })
 
     def generate_next_questions(self, diseases, diagnosis_state):
-<<<<<<< HEAD
         """Generate the most relevant next questions based on current probabilities and history"""
         asked_question_ids = diagnosis_state['asked_questions']
         current_probs = diagnosis_state['current_probabilities']
         previous_responses = diagnosis_state['user_responses']
-=======
-        """Generate the most relevant next questions based on current state"""
-        asked_question_ids = diagnosis_state['asked_questions']
-        current_probs = diagnosis_state['current_probabilities']
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
         
         diseases_qs = Disease.objects.filter(name__in=diseases)
         all_symptoms = Symptom.objects.filter(
@@ -424,7 +414,6 @@ class TranscribeAndPredictDiseaseView(APIView):
             id__in=asked_question_ids
         ).distinct()
 
-<<<<<<< HEAD
         # Calculate symptom importance scores with multiple factors
         symptom_scores = []
         for symptom in all_symptoms:
@@ -434,22 +423,12 @@ class TranscribeAndPredictDiseaseView(APIView):
                 current_probs,
                 previous_responses,
                 diagnosis_state['interaction_count']
-=======
-        # Score symptoms based on diagnostic value
-        symptom_scores = []
-        for symptom in all_symptoms:
-            score = self.calculate_symptom_score(
-                symptom, 
-                diseases_qs, 
-                current_probs
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
             )
             symptom_scores.append((symptom, score))
         
         # Sort by highest diagnostic value
         symptom_scores.sort(key=lambda x: -x[1])
         
-<<<<<<< HEAD
         # Select questions using adaptive strategy
         questions = self.select_adaptive_questions(
             symptom_scores,
@@ -570,43 +549,12 @@ class TranscribeAndPredictDiseaseView(APIView):
         if len(questions) < num_questions:
             remaining = [s for s in symptom_scores if s not in questions]
             questions.extend(remaining[:num_questions - len(questions)])
-=======
-        # Select questions - prioritize top disease symptoms first
-        top_disease = diseases_qs[int(np.argmax(current_probs))]
-        top_disease_symptoms = [
-            (s, score) for s, score in symptom_scores 
-            if top_disease in s.related_diseases.all()
-        ]
-        other_symptoms = [
-            (s, score) for s, score in symptom_scores 
-            if top_disease not in s.related_diseases.all()
-        ]
-        
-        # Take 1-2 top disease symptoms and 1 differentiating symptom
-        num_questions = min(3, max(2, 4 - diagnosis_state['interaction_count']))
-        selected_questions = []
-        
-        if top_disease_symptoms:
-            selected_questions.extend(top_disease_symptoms[:min(2, len(top_disease_symptoms))])
-        
-        if other_symptoms and len(selected_questions) < num_questions:
-            selected_questions.append(other_symptoms[0])
-        
-        # If we still need more questions, take next highest scored
-        if len(selected_questions) < num_questions:
-            remaining = [s for s in symptom_scores if s not in selected_questions]
-            selected_questions.extend(remaining[:num_questions - len(selected_questions)])
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
         
         return [{
             'id': s.id,
             'text': f"Je, una {s.swahili_name.lower()}? ({s.name})",
             'type': 'boolean'
-<<<<<<< HEAD
         } for s, _ in questions[:num_questions]]
-=======
-        } for s, _ in selected_questions[:num_questions]]
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
 
 
     def calculate_symptom_score(self, symptom, diseases_qs, current_probs):
