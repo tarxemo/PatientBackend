@@ -508,13 +508,7 @@ class CreateDisease(graphene.Mutation):
             
         return CreateDisease(disease=disease)
 
-<<<<<<< HEAD
 # Mutations
-=======
- 
-
-
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
 class CreateConsultation(graphene.Mutation):
     class Arguments:
         input = ConsultationInput(required=True)
@@ -525,7 +519,6 @@ class CreateConsultation(graphene.Mutation):
     
     @login_required_resolver
     def mutate(root, info, input):
-<<<<<<< HEAD
         disease = Disease.objects.get(pk=input.disease_id) if input.disease_id else None
         if info.context.user.user_type == "patient":
             doctor = Doctor.objects.get(pk=input.doctor_id) if input.doctor_id else None
@@ -552,9 +545,6 @@ class CreateConsultation(graphene.Mutation):
             consultation.symptoms.set(symptoms)
         
         return CreateConsultation(consultation=consultation)
-=======
-        user = info.context.user
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
 
         # Only authenticated doctors or staff can create consultations
         if not user.is_authenticated or not (user.is_staff or hasattr(user, 'doctor')):
@@ -739,7 +729,6 @@ class CreateTestResult(graphene.Mutation):
                 success=False
             )
 
-<<<<<<< HEAD
             # Create the TestResult object
             test_result = TestResult(
                 test_order=test_order,  # Use the TestOrder instance
@@ -747,24 +736,6 @@ class CreateTestResult(graphene.Mutation):
                 notes=input.notes,
                 result_file=result_file,
                 patient = test_order.patient
-=======
-        try:
-            laboratory = Laboratory.objects.get(lab_tech=lab_technician)
-        except Laboratory.DoesNotExist:
-            return CreateTestResult(
-                errors=["Lab technician is not assigned to any laboratory"],
-                success=False
-            )
-
-        try:
-            test_order = TestOrder.objects.select_related('patient').get(id=test_order_id)
-
-            test_result = TestResult.objects.create(
-                test_order=test_order,
-                laboratory=laboratory,
-                notes=notes or "",
-                result_file=result_file
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
             )
 
             test_order.status = 'completed'
@@ -1073,7 +1044,6 @@ class CreateTestOrder(graphene.Mutation):
 #         # Generate a unique order ID
 #         order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
         
-<<<<<<< HEAD
         test_order = TestOrder(
             order_id=order_id,  # Add this line
             test_type_id=input.test_type_id,
@@ -1084,21 +1054,6 @@ class CreateTestOrder(graphene.Mutation):
         )
         test_order.save()
         return CreateTestOrder(test_order=test_order)
-=======
-#         test_order = TestOrder(
-#             order_id=order_id,  # Add this line
-#             test_type_id=input.test_type_id,
-#             patient_id=input.patient_id,
-#             priority=input.priority or 'normal',
-#             status=input.status or 'pending',
-#             received_time=timezone.now()
-#         )
-#         test_order.save()
-#         return CreateTestOrder(test_order=test_order)
-
-
-
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
 class UpdateTestOrder(graphene.Mutation):
     class Arguments:
         input = TestOrderUpdateInput(required=True)
