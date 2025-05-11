@@ -80,21 +80,32 @@ class TestResultInput(InputObjectType):
     notes = String()
 
 # Input for Prescription
+# class PrescriptionInput(InputObjectType):
+#     consultation = ID(required=True)
+#     test_result = ID(required=True)  # 🆕 added
+#     medication = String(required=True)  # 🆕 added back
+#     dosage = String(required=True)
+#     instructions = String()
+
+import graphene
+
 class PrescriptionInput(InputObjectType):
-    consultation = ID(required=True)
-    test_result = ID(required=True)  # 🆕 added
-    medication = String(required=True)  # 🆕 added back
-    dosage = String(required=True)
-    instructions = String()
+    consultation_id = graphene.ID(required=True)  # Ensure consultation is valid
+    doctor_id = graphene.ID()  # Allow doctor_id to be passed directly
+    medication = graphene.String(required=True)
+    dosage = graphene.String(required=True)
+    instructions = graphene.String()
+    test_result_id = graphene.ID()  # Adjust according to your model
 
 
 
 class TestResultInput(graphene.InputObjectType):
-    prescribed_test_id = graphene.ID(required=True, description="ID of the prescribed test")
+    test_order_id = graphene.ID(required=True, description="ID of the test order")
     laboratory_id = graphene.ID(required=True, description="ID of the laboratory")
     result_file = graphene.String(required=True, description="Base64 encoded file content")
     file_name = graphene.String(required=True, description="Name of the file with extension")
     notes = graphene.String(description="Additional notes about the test result")
+
 
 
 class MedicalTestInput(graphene.InputObjectType):

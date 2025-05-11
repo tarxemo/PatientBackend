@@ -1,13 +1,18 @@
 import graphene
 from graphene import ObjectType, String, Int, Float, Boolean, Date, DateTime, ID, List, Field
+<<<<<<< HEAD
+=======
+from graphql import GraphQLError
+>>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
 
 from authApp.decorators import login_required_resolver
 # from graphene_django.filter import DjangoFilterConnectionField
 from .models import (
-    Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
+    Appointment, Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
     MedicalTest, PrescribedTest, TestResult, Prescription
 )
 from .outputs import  *
+from graphql_jwt.decorators import login_required
 
 # from graphene_django.filter import DjangoFilterConnectionField
 
@@ -80,14 +85,10 @@ class PatientQuery(ObjectType):
     def resolve_diseases(self, info):
         return Disease.objects.all()
 
-# Query to fetch a single Consultation by ID
-    consultation = Field(ConsultationOutput, id=ID(required=True))
+ 
 
-    def resolve_consultation(self, info, id):
-        return Consultation.objects.get(id=id)
 
-# Query to fetch all Consultations
-    consultations = List(ConsultationOutput)
+    consultations_by_me = graphene.List(ConsultationOutput)
 
     @login_required_resolver
     def resolve_consultations(self, info):
@@ -97,24 +98,13 @@ class PatientQuery(ObjectType):
         if user.user_type == "doctor":
             return Consultation.objects.filter(doctor__user=user)
         return Consultation.objects.all()
+    def resolve_consultations_by_me(self, info):
+        user = info.context.user
+        if user.user_type == "doctor":
+            return Consultation.objects.filter(doctor__user=user)
+        else:
+            return Consultation.objects.filter(patient__user=user)
 
-# Query to fetch Consultations by Patient ID
-    consultations_by_patient = List(ConsultationOutput, patient_id=ID(required=True))
-
-    def resolve_consultations_by_patient(self, info, patient_id):
-        return Consultation.objects.filter(patient_id=patient_id)
-
-# Query to fetch Consultations by Doctor ID
-    consultations_by_doctor = List(ConsultationOutput, doctor_id=ID(required=True))
-
-    def resolve_consultations_by_doctor(self, info, doctor_id):
-        return Consultation.objects.filter(doctor_id=doctor_id)
-
-# Query to fetch Consultations by Status
-    consultations_by_status = List(ConsultationOutput, status=String(required=True))
-
-    def resolve_consultations_by_status(self, info, status):
-        return Consultation.objects.filter(status=status)
 
 # Query to fetch a single MedicalTest by ID
     medical_test = Field(MedicalTestOutput, id=ID(required=True))
@@ -128,29 +118,35 @@ class PatientQuery(ObjectType):
     def resolve_medical_tests(self, info):
         return MedicalTest.objects.all()
 
-# Query to fetch a single PrescribedTest by ID
-    prescribed_test = Field(PrescribedTestOutput, id=ID(required=True))
+ 
 
-    def resolve_prescribed_test(self, info, id):
-        return PrescribedTest.objects.get(id=id)
+ 
 
-# Query to fetch all PrescribedTests
-    prescribed_tests = List(PrescribedTestOutput)
 
-    def resolve_prescribed_tests(self, info):
-        return PrescribedTest.objects.all()
 
-# Query to fetch PrescribedTests by Consultation ID
-    prescribed_tests_by_consultation = List(PrescribedTestOutput, consultation_id=ID(required=True))
+    test_results_by_me = graphene.List(TestResultOutput)
 
-    def resolve_prescribed_tests_by_consultation(self, info, consultation_id):
-        return PrescribedTest.objects.filter(consultation_id=consultation_id)
+    @login_required_resolver
+    def resolve_test_results_by_me(self, info):
+        user = info.context.user
 
-# Query to fetch a single TestResult by ID
-    test_result = Field(TestResultOutput, id=ID(required=True))
+        if hasattr(user, "doctor"):
+            return TestResult.objects.select_related(
+                "test_order__doctor__user"
+            ).filter(test_order__doctor__user=user)
 
-    def resolve_test_result(self, info, id):
-        return TestResult.objects.get(id=id)
+        elif hasattr(user, "patient"):
+            return TestResult.objects.select_related(
+                "test_order__patient__user"
+            ).filter(test_order__patient__user=user)
+
+        elif hasattr(user, "labtech"):
+            return TestResult.objects.select_related(
+                "laboratory__lab_tech__user"
+            ).filter(laboratory__lab_tech__user=user)
+
+        raise GraphQLError("Access denied: Only the doctor, patient, or lab tech involved can view these test results.")
+
 
 # Query to fetch all TestResults
     all_test_results = List(TestResultOutput)
@@ -165,11 +161,7 @@ class PatientQuery(ObjectType):
         else:
             return TestResult.objects.all()
 
-# Query to fetch TestResults by PrescribedTest ID
-    test_results_by_prescribed_test = List(TestResultOutput, prescribed_test_id=ID(required=True))
 
-    def resolve_test_results_by_prescribed_test(self, info, prescribed_test_id):
-        return TestResult.objects.filter(prescribed_test_id=prescribed_test_id)
 
 
 # Query to fetch medical tests 
@@ -209,15 +201,19 @@ class PatientQuery(ObjectType):
         except Appointment.DoesNotExist:
             return None
 
+ 
 
-# Query to fetch a single Prescription by ID
-    prescription = Field(PrescriptionOutput, id=ID(required=True))
+    prescription_by_user = graphene.List(PrescriptionOutput)
+    
+    @login_required_resolver
+    def resolve_prescription_by_user(self, info):
+        user = info.context.user
 
-    def resolve_prescription(self, info, id):
-        return Prescription.objects.get(id=id)
+        if user.user_type == "doctor":
+            return  Prescription.objects.filter(doctor__user=user)
 
-# Query to fetch all Prescriptions
-    prescriptions = List(PrescriptionOutput)
+        else:
+            return Prescription.objects.filter(consultation__patient__user=user)
 
     @login_required_resolver
     def resolve_prescriptions(self, info):
@@ -234,14 +230,8 @@ class PatientQuery(ObjectType):
         return Prescription.objects.filter(consultation_id=consultation_id)
 
 
-
-
-
-
-
-
-            
-
+   
+  
 
 #new
 
@@ -275,29 +265,20 @@ class PatientQuery(ObjectType):
         return Laboratory.objects.get(pk=id)
 
 
-# Query definitions
-    test_order = graphene.Field(TestOrderType, id=graphene.ID(required=True))
-    all_test_orders = graphene.List(TestOrderType)
-    test_orders_by_status = graphene.List(
-        TestOrderType,
-        status=graphene.String(required=False)
-    )
-    test_orders_by_patient = graphene.List(
-        TestOrderType,
-        patient_id=graphene.ID(required=True)
-    )
+ 
+    test_orders_by_me = graphene.List(TestOrderType)
 
-    # Resolvers
-    def resolve_test_order(self, info, id):
-        return TestOrder.objects.get(id=id)
+    @login_required_resolver
+    def resolve_test_orders_by_me(self, info):
+        user = info.context.user
 
-    def resolve_all_test_orders(self, info, **kwargs):
-        return TestOrder.objects.all()
+        if hasattr(user, "doctor"):
+            return TestOrder.objects.select_related("patient__user")\
+                .filter(doctor__user=user)
 
-    def resolve_test_orders_by_status(self, info, status=None):
-        if status:
-            return TestOrder.objects.filter(status=status.lower())
-        return TestOrder.objects.all()
+        elif hasattr(user, "patient"):
+            return TestOrder.objects.select_related("patient__user")\
+                .filter(patient__user=user)
 
     def resolve_test_orders_by_patient(self, info, patient_id):
         return TestOrder.objects.filter(patient_id=patient_id)

@@ -168,19 +168,30 @@ class TestResultOutput(DjangoObjectType):
  
 # Output for Prescription
  
-class PrescriptionOutput(DjangoObjectType):
-    consultation = Field(ConsultationOutput)
-    test_result = Field(TestResultOutput)  # 🆕 Add this line
+# outputs.py
+import graphene
+ 
 
+from graphene_django.types import DjangoObjectType
+from .models import Prescription
+
+class PrescriptionOutput(DjangoObjectType):
     class Meta:
         model = Prescription
-        fields = ("id", "consultation", "test_result", "medication", "dosage", "instructions", "prescribed_at")
+        fields = "__all__"  # This includes all fields from the Prescription model
 
-    def resolve_consultation(self, info):
-        return self.consultation
+    # patient = graphene.Field(PatientOutput)
 
-    def resolve_test_result(self, info):  # 🆕 Add this resolver
-        return self.test_result
+
+    # Optional: If you need to customize the field names or their resolution
+    # You can define additional resolvers here
+    def resolve_medication(self, info):
+        return self.medication  # You can customize this if needed
+
+class CreatePrescriptionPayload(graphene.ObjectType):
+    prescription = graphene.Field(PrescriptionOutput)
+    errors = graphene.List(graphene.String)
+
 
 
 class TestOrderOutput(DjangoObjectType):
@@ -308,6 +319,7 @@ class TestOrderType(DjangoObjectType):
     
     # Use your existing PatientOutput instead of PatientType
     patient = graphene.Field(PatientOutput)
+
     
     # Add display fields for enum choices
     priority_display = graphene.String()
