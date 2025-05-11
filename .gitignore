@@ -2,3 +2,10 @@
 # feature_names.pkl
 # label_encoder.pkl
 # symptom_translation.json
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Optional: ignore virtual environments if needed
+venv/
+.env/

@@ -294,7 +294,8 @@ class CreateTestResult(Mutation):
                 prescribed_test=prescribed_test,
                 laboratory=laboratory,
                 result_file=file_content,
-                notes=input.notes
+                notes=input.notes,
+                patient = prescribed_test.consultation.patient
             )
 
             return CreateTestResult(test_result=test_result)
@@ -531,7 +532,7 @@ class CreateConsultation(graphene.Mutation):
                 patient=Patient.objects.get(user=info.context.user),
                 disease=disease,
                 doctor=doctor,
-                status=input.status or 'Pending'
+                # status=input.status or 'Pending'
             )
         if info.context.user.user_type == "doctor":
             patient = Patient.objects.get(pk=input.doctor_id) if input.doctor_id else None
@@ -539,7 +540,7 @@ class CreateConsultation(graphene.Mutation):
                 doctor=Doctor.objects.get(user=info.context.user),
                 disease=disease,
                 patient=patient,
-                status=input.status or 'Pending'
+                # status=input.status or 'Pending'
             )
         
         consultation.save()
@@ -660,7 +661,8 @@ class CreateTestResult(graphene.Mutation):
                 test_order=test_order,  # Use the TestOrder instance
                 laboratory=laboratory,  # Use the Laboratory instance
                 notes=input.notes,
-                result_file=result_file
+                result_file=result_file,
+                patient = test_order.patient
             )
 
             # Save the TestResult object to the database
@@ -904,7 +906,7 @@ class CreateTestOrder(graphene.Mutation):
             patient_id=input.patient_id,
             priority=input.priority or 'normal',
             status=input.status or 'pending',
-            received_time=timezone.now()
+            received_time=timezone.now(),
         )
         test_order.save()
         return CreateTestOrder(test_order=test_order)

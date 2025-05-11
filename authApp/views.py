@@ -304,7 +304,7 @@ class TranscribeAndPredictDiseaseView(APIView):
         top_indices = np.argsort(prediction)[::-1][:3]
         top_predictions = classes[top_indices]
         top_probabilities = prediction[top_indices] * 100
-
+        print(top_probabilities)
         # Create diagnostic session
         session_id = str(uuid.uuid4())
         diagnosis_state = {

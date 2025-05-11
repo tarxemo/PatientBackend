@@ -81,7 +81,7 @@ class Consultation(models.Model):
         ('Pending', 'Pending'),
         ('In Progress', 'In Progress'),
         ('Completed', 'Completed')
-    ], default='Pending')
+    ], default='Completed')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -184,7 +184,7 @@ class TestResult(models.Model):
     notes = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     prescribed_test = models.OneToOneField(PrescribedTest, on_delete=models.CASCADE, related_name='test_result', null=True, blank=True)
-
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, null=True, blank=True)
     # ForeignKey to TestOrder
     test_order = models.ForeignKey(TestOrder, on_delete=models.CASCADE, related_name='test_results',null=True,)
 

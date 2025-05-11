@@ -161,7 +161,7 @@ class PatientQuery(ObjectType):
         if user.user_type == "patient":
             return TestResult.objects.filter(test_order__patient__user = user)
         if user.user_type == "doctor":
-            return TestResult.objects.filter(test_order__doctor__user = user) or None
+            return TestResult.objects.all()
         else:
             return TestResult.objects.all()
 
@@ -219,7 +219,12 @@ class PatientQuery(ObjectType):
 # Query to fetch all Prescriptions
     prescriptions = List(PrescriptionOutput)
 
+    @login_required_resolver
     def resolve_prescriptions(self, info):
+        user = info.context.user
+        if user.user_type == "patient":
+            return Prescription.objects.filter(test_result__patient__user=user)
+            
         return Prescription.objects.all()
 
 # Query to fetch Prescriptions by Consultation ID
