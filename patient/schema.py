@@ -1,9 +1,6 @@
 import graphene
 from graphene import ObjectType, String, Int, Float, Boolean, Date, DateTime, ID, List, Field
-<<<<<<< HEAD
-=======
 from graphql import GraphQLError
->>>>>>> 1134d0de37135a2720d948202b4723cb74098b2c
 
 from authApp.decorators import login_required_resolver
 # from graphene_django.filter import DjangoFilterConnectionField
