@@ -546,70 +546,70 @@ class CreateConsultation(graphene.Mutation):
         
         return CreateConsultation(consultation=consultation)
 
-        # Only authenticated doctors or staff can create consultations
-        if not user.is_authenticated or not (user.is_staff or hasattr(user, 'doctor')):
-            return CreateConsultation(
-                success=False,
-                message="Only staff or doctors can create consultations",
-                consultation=None
-            )
+        # # Only authenticated doctors or staff can create consultations
+        # if not user.is_authenticated or not (user.is_staff or hasattr(user, 'doctor')):
+        #     return CreateConsultation(
+        #         success=False,
+        #         message="Only staff or doctors can create consultations",
+        #         consultation=None
+        #     )
 
-        # Ensure patient exists
-        try:
-            patient = Patient.objects.get(id=input.patient_id)
-        except Patient.DoesNotExist:
-            return CreateConsultation(
-                success=False,
-                message="Patient not found",
-                consultation=None
-            )
+        # # Ensure patient exists
+        # try:
+        #     patient = Patient.objects.get(id=input.patient_id)
+        # except Patient.DoesNotExist:
+        #     return CreateConsultation(
+        #         success=False,
+        #         message="Patient not found",
+        #         consultation=None
+        #     )
 
-        # Doctor resolution
-        if input.doctor_id:
-            try:
-                doctor = Doctor.objects.get(id=input.doctor_id)
-                if not doctor.user.is_verified:
-                    return CreateConsultation(
-                        success=False,
-                        message="Specified doctor is not verified",
-                        consultation=None
-                    )
-            except Doctor.DoesNotExist:
-                return CreateConsultation(
-                    success=False,
-                    message="Doctor not found",
-                    consultation=None
-                )
-        else:
-            # Default to current user if they are a doctor
-            if hasattr(user, 'doctor'):
-                doctor = user.doctor
-                if not doctor.user.is_verified:
-                    return CreateConsultation(
-                        success=False,
-                        message="Your doctor account is not verified",
-                        consultation=None
-                    )
-            else:
-                doctor = None  # Optional if doctor is not required
+        # # Doctor resolution
+        # if input.doctor_id:
+        #     try:
+        #         doctor = Doctor.objects.get(id=input.doctor_id)
+        #         if not doctor.user.is_verified:
+        #             return CreateConsultation(
+        #                 success=False,
+        #                 message="Specified doctor is not verified",
+        #                 consultation=None
+        #             )
+        #     except Doctor.DoesNotExist:
+        #         return CreateConsultation(
+        #             success=False,
+        #             message="Doctor not found",
+        #             consultation=None
+        #         )
+        # else:
+        #     # Default to current user if they are a doctor
+        #     if hasattr(user, 'doctor'):
+        #         doctor = user.doctor
+        #         if not doctor.user.is_verified:
+        #             return CreateConsultation(
+        #                 success=False,
+        #                 message="Your doctor account is not verified",
+        #                 consultation=None
+        #             )
+        #     else:
+        #         doctor = None  # Optional if doctor is not required
 
-        # Create the consultation
-        consultation = Consultation.objects.create(
-            patient=patient,
-            doctor=doctor,
-            status='Pending'
-        )
+        # # Create the consultation
+        # consultation = Consultation.objects.create(
+        #     patient=patient,
+        #     doctor=doctor,
+        #     status='Pending'
+        # )
 
-        # Attach symptoms
-        if input.symptoms:
-            symptoms = Symptom.objects.filter(id__in=input.symptoms)
-            consultation.symptoms.set(symptoms)
+        # # Attach symptoms
+        # if input.symptoms:
+        #     symptoms = Symptom.objects.filter(id__in=input.symptoms)
+        #     consultation.symptoms.set(symptoms)
 
-        return CreateConsultation(
-            success=True,
-            message="Consultation created successfully",
-            consultation=consultation
-        )
+        # return CreateConsultation(
+        #     success=True,
+        #     message="Consultation created successfully",
+        #     consultation=consultation
+        # )
 
 
         
@@ -729,13 +729,22 @@ class CreateTestResult(graphene.Mutation):
                 success=False
             )
 
-            # Create the TestResult object
-            test_result = TestResult(
-                test_order=test_order,  # Use the TestOrder instance
-                laboratory=laboratory,  # Use the Laboratory instance
-                notes=input.notes,
-                result_file=result_file,
-                patient = test_order.patient
+        try:
+            laboratory = Laboratory.objects.get(lab_tech=lab_technician)
+        except Laboratory.DoesNotExist:
+            return CreateTestResult(
+                errors=["Lab technician is not assigned to any laboratory"],
+                success=False
+            )
+
+        try:
+            test_order = TestOrder.objects.select_related('patient').get(id=test_order_id)
+
+            test_result = TestResult.objects.create(
+                test_order=test_order,
+                laboratory=laboratory,
+                notes=notes or "",
+                result_file=result_file
             )
 
             test_order.status = 'completed'

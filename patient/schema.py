@@ -85,7 +85,7 @@ class PatientQuery(ObjectType):
  
 
 
-    consultations_by_me = graphene.List(ConsultationOutput)
+    consultations = graphene.List(ConsultationOutput)
 
     @login_required_resolver
     def resolve_consultations(self, info):
@@ -95,6 +95,7 @@ class PatientQuery(ObjectType):
         if user.user_type == "doctor":
             return Consultation.objects.filter(doctor__user=user)
         return Consultation.objects.all()
+    
     def resolve_consultations_by_me(self, info):
         user = info.context.user
         if user.user_type == "doctor":
@@ -211,7 +212,8 @@ class PatientQuery(ObjectType):
 
         else:
             return Prescription.objects.filter(consultation__patient__user=user)
-
+        
+    prescriptions = graphene.List(PrescriptionOutput)
     @login_required_resolver
     def resolve_prescriptions(self, info):
         user = info.context.user
@@ -220,7 +222,7 @@ class PatientQuery(ObjectType):
             
         return Prescription.objects.all()
 
-# Query to fetch Prescriptions by Consultation ID
+    # Query to fetch Prescriptions by Consultation ID
     prescriptions_by_consultation = List(PrescriptionOutput, consultation_id=ID(required=True))
 
     def resolve_prescriptions_by_consultation(self, info, consultation_id):

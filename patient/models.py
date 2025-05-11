@@ -121,7 +121,7 @@ class Prescription(models.Model):
     dosage = models.CharField(max_length=255)
     instructions = models.TextField(blank=True, null=True, default="")
     test_result = models.ForeignKey('TestResult', on_delete=models.SET_NULL, null=True, blank=True)
-
+    prescribed_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return f"Prescription for {self.medication}"
 

@@ -59,9 +59,9 @@ class LaboratoryOutput(BaseProfileOutput):
     location = String()
     user = Field(lambda: CustomUserOutput)
     created_at=Date()
+    
     def resolve_user(self, info):
-        return self.user
-
+        return self.lab_tech.user
 # Output for Symptom
 class SymptomOutput(DjangoObjectType):
     class Meta:
