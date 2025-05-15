@@ -341,3 +341,8 @@ class TestOrderType(DjangoObjectType):
         # This will be automatically handled by DjangoObjectType,
         # but we're being explicit here for clarity
         return self.patient
+
+class TestResultInputObject(graphene.InputObjectType):
+    testOrderId = graphene.ID(required=True)
+    laboratoryId = graphene.ID(required=True)
+    notes = graphene.String()

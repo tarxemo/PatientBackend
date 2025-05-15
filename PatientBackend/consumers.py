@@ -1,6 +1,8 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+from patient.models import Consultation, Doctor, Patient
+
 class CallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
@@ -69,7 +71,13 @@ class CallConsumer(AsyncWebsocketConsumer):
     async def accept_call(self, data):
         caller_id = data["caller_id"]
         print(f"User {self.user.username} accepted call from {caller_id}")
-
+        # consultation = Consultation.objects.create(
+        #         patient = Patient.objects.get(user__id=caller_id),
+        #         doctor = Doctor.objects.get(user__username = self.user.username),
+        #         # symptoms = models.ManyToManyField(Symptom, related_name='consultations')
+        #         # disease = models.ForeignKey(Disease, on_delete=models.SET_NULL, null=True, blank=True)
+        # )
+        # consultation.saved()
         await self.channel_layer.group_send(
             f"user_{caller_id}",
             {

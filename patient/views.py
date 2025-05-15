@@ -255,47 +255,32 @@ import base64
 import datetime
 from django.core.files.base import ContentFile
  
-
 class CreateTestResult(Mutation):
     class Arguments:
-        input = TestResultInput(required=True)
+        input = TestResultInputObject(required=True)
 
     test_result = Field(TestResultOutput)
 
-    
     @login_required_resolver
-    def mutate(cls, root, info, input):
+    def mutate(self, info, input):
         user = info.context.user
 
-        # Ensure only LabTechs can create TestResults
-        if not hasattr(user, "labtech"):
-            raise Exception("Only authorized lab technicians can create test results.")
-
         try:
-            prescribed_test = PrescribedTest.objects.get(pk=input.prescribed_test_id)
-            laboratory = Laboratory.objects.get(pk=input.laboratory_id)
+            test_order = TestOrder.objects.get(pk=input.testOrderId)
+            laboratory = Laboratory.objects.get(pk=input.laboratoryId)
 
-            # Optional: Confirm that this lab belongs to the labtech user
-            if laboratory.lab_tech != user.labtech:
-                raise Exception("You do not have permission to add results to this laboratory.")
-
-            # Decode base64 file
-            file_data = base64.b64decode(input.result_file)
-            file_content = ContentFile(file_data, name=input.file_name)
-
-            # Create test result
+            # Create test result (without result_file)
             test_result = TestResult.objects.create(
-                prescribed_test=prescribed_test,
+                test_order=test_order,
                 laboratory=laboratory,
-                result_file=file_content,
                 notes=input.notes,
-                patient = prescribed_test.consultation.patient
+                patient=test_order.patient  # or test_order.consultation.patient if needed
             )
 
             return CreateTestResult(test_result=test_result)
 
-        except PrescribedTest.DoesNotExist:
-            raise Exception("Prescribed test not found.")
+        except TestOrder.DoesNotExist:
+            raise Exception("Test order not found.")
         except Laboratory.DoesNotExist:
             raise Exception("Laboratory not found.")
         except Exception as e:
@@ -303,19 +288,6 @@ class CreateTestResult(Mutation):
 
 
 
-
-
-
-
-
-
-
-
-import graphene
-from graphene_django.types import DjangoObjectType
-from .models import Appointment, Patient, Doctor
-from .inputs import AppointmentInput
-from .outputs import AppointmentOutput
 
 # Mutation for creating appointments
 class CreateAppointment(graphene.Mutation):
@@ -707,66 +679,66 @@ class CreatePrescribedTest(graphene.Mutation):
 
 
 
-class CreateTestResult(graphene.Mutation):
-    class Arguments:
-        test_order_id = graphene.ID(required=True)
-        notes = graphene.String()
-        result_file = Upload(required=False)
+# class CreateTestResult(graphene.Mutation):
+#     class Arguments:
+#         test_order_id = graphene.ID(required=True)
+#         notes = graphene.String()
+#         result_file = Upload(required=False)
 
-    test_result = graphene.Field(TestResultType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+#     test_result = graphene.Field(TestResultType)
+#     success = graphene.Boolean()
+#     errors = graphene.List(graphene.String)
 
-    @login_required_resolver
-    def mutate(root, info, test_order_id, notes=None, result_file=None):
-        user = info.context.user
+#     @login_required_resolver
+#     def mutate(root, info, test_order_id, notes=None, result_file=None):
+#         user = info.context.user
 
-        try:
-            lab_technician = user.labtech_profile
-        except AttributeError:
-            return CreateTestResult(
-                errors=["Only lab technicians can create test results"],
-                success=False
-            )
+#         try:
+#             lab_technician = user.labtech_profile
+#         except AttributeError:
+#             return CreateTestResult(
+#                 errors=["Only lab technicians can create test results"],
+#                 success=False
+#             )
 
-        try:
-            laboratory = Laboratory.objects.get(lab_tech=lab_technician)
-        except Laboratory.DoesNotExist:
-            return CreateTestResult(
-                errors=["Lab technician is not assigned to any laboratory"],
-                success=False
-            )
+#         try:
+#             laboratory = Laboratory.objects.get(lab_tech=lab_technician)
+#         except Laboratory.DoesNotExist:
+#             return CreateTestResult(
+#                 errors=["Lab technician is not assigned to any laboratory"],
+#                 success=False
+#             )
 
-        try:
-            test_order = TestOrder.objects.select_related('patient').get(id=test_order_id)
+#         try:
+#             test_order = TestOrder.objects.select_related('patient').get(id=test_order_id)
 
-            test_result = TestResult.objects.create(
-                test_order=test_order,
-                laboratory=laboratory,
-                notes=notes or "",
-                result_file=result_file
-            )
+#             test_result = TestResult.objects.create(
+#                 test_order=test_order,
+#                 laboratory=laboratory,
+#                 notes=notes or "",
+#                 result_file=result_file
+#             )
 
-            test_order.status = 'completed'
-            test_order.save(update_fields=['status'])
+#             test_order.status = 'completed'
+#             test_order.save(update_fields=['status'])
 
-            return CreateTestResult(
-                test_result=test_result,
-                success=True
-            )
+#             return CreateTestResult(
+#                 test_result=test_result,
+#                 success=True
+#             )
 
-        except TestOrder.DoesNotExist:
-            return CreateTestResult(
-                errors=["Test order not found"],
-                success=False
-            )
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return CreateTestResult(
-                errors=[f"An error occurred: {str(e)}"],
-                success=False
-            )
+#         except TestOrder.DoesNotExist:
+#             return CreateTestResult(
+#                 errors=["Test order not found"],
+#                 success=False
+#             )
+#         except Exception as e:
+#             import traceback
+#             traceback.print_exc()
+#             return CreateTestResult(
+#                 errors=[f"An error occurred: {str(e)}"],
+#                 success=False
+#             )
 
 class PrescriptionOutput(DjangoObjectType):
     class Meta:
@@ -1121,7 +1093,7 @@ class PatientMutation(graphene.ObjectType):
     create_disease = CreateDisease.Field()
     create_consultation = CreateConsultation.Field()
     create_prescribed_test = CreatePrescribedTest.Field()
-    create_test_result = CreateTestResult.Field()
+    # create_test_result = CreateTestResult.Field()
     create_prescription = CreatePrescription.Field()
     
     # Update
