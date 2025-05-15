@@ -315,7 +315,8 @@ class TranscribeAndPredictDiseaseView(APIView):
             'interaction_count': 0,
             'diagnosis_stage': 'initial'
         }
-        cache.set(f'diagnosis_{session_id}', diagnosis_state, timeout=3600)
+        print(request.user.username)
+        cache.set(f'diagnosis_{request.user.username}', diagnosis_state, timeout=3600)
 
         # Generate first set of questions
         questions = self.generate_next_questions(
@@ -343,7 +344,7 @@ class TranscribeAndPredictDiseaseView(APIView):
         if not session_id:
             return Response({"error": "Missing diagnosis session"}, status=400)
         
-        diagnosis_state = cache.get(f'diagnosis_{session_id}')
+        diagnosis_state = cache.get(f'diagnosis_{request.user.username}')
         if not diagnosis_state:
             return Response({"error": "Session expired or invalid"}, status=400)
 
@@ -390,7 +391,7 @@ class TranscribeAndPredictDiseaseView(APIView):
             )
             stage = "followup"
 
-        cache.set(f'diagnosis_{session_id}', diagnosis_state, timeout=3600)
+        cache.set(f'diagnosis_{request.user.username}', diagnosis_state, timeout=3600)
 
         return Response({
             "predicted_diseases": self.format_disease_info(top_diseases, [d[1] for d in sorted_diseases]),

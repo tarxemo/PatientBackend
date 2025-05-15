@@ -1,7 +1,36 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.core.cache import cache
+from django.db.models import Q
+from authApp.models import CustomUser
+from patient.models import Consultation, Disease, Doctor, Patient, Symptom
 
-from patient.models import Consultation, Doctor, Patient
+from asgiref.sync import sync_to_async
+
+@sync_to_async
+def get_user_by_id(user_id):
+    return CustomUser.objects.get(id=user_id)
+
+@sync_to_async
+def get_disease_by_name(name):
+    return Disease.objects.get(name=name)
+
+@sync_to_async
+def get_matched_symptoms(transcribed_text):
+    return list(Symptom.objects.filter(
+        Q(name__icontains=transcribed_text) | Q(swahili_name__icontains=transcribed_text)
+    ))
+
+@sync_to_async
+def create_consultation(caller_id, doctor_username, disease, matched_symptoms):
+    consultation = Consultation.objects.create(
+        patient=Patient.objects.get(user__id=caller_id),
+        doctor=Doctor.objects.get(user__username=doctor_username),
+        disease=disease
+    )
+    consultation.symptoms.set(matched_symptoms)
+    consultation.save()
+    return consultation
 
 class CallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -71,13 +100,29 @@ class CallConsumer(AsyncWebsocketConsumer):
     async def accept_call(self, data):
         caller_id = data["caller_id"]
         print(f"User {self.user.username} accepted call from {caller_id}")
-        # consultation = Consultation.objects.create(
-        #         patient = Patient.objects.get(user__id=caller_id),
-        #         doctor = Doctor.objects.get(user__username = self.user.username),
-        #         # symptoms = models.ManyToManyField(Symptom, related_name='consultations')
-        #         # disease = models.ForeignKey(Disease, on_delete=models.SET_NULL, null=True, blank=True)
-        # )
-        # consultation.saved()
+        
+        caller_user = await get_user_by_id(caller_id)
+
+        diagnosis_state = cache.get(f'diagnosis_{caller_user.username}')
+        if not diagnosis_state:
+            print("Diagnosis session not found.")
+            return
+
+        transcribed_text = diagnosis_state.get("transcribed_text", "")
+        top_disease_name = diagnosis_state.get("current_predictions", [None])[0]
+        if not top_disease_name:
+            print("No predicted disease found.")
+            return
+
+        try:
+            disease = await get_disease_by_name(top_disease_name)
+        except Disease.DoesNotExist:
+            print(f"Disease {top_disease_name} not found.")
+            return
+
+        matched_symptoms = await get_matched_symptoms(transcribed_text)
+        await create_consultation(caller_id, self.user.username, disease, matched_symptoms)
+
         await self.channel_layer.group_send(
             f"user_{caller_id}",
             {
@@ -86,6 +131,8 @@ class CallConsumer(AsyncWebsocketConsumer):
                 "callee_name": self.user.username,
             }
         )
+
+
 
     async def call_accepted(self, event):
         await self.send(text_data=json.dumps({

@@ -27,8 +27,16 @@ class PatientQuery(ObjectType):
     # Query to fetch all Patients
     patients = List(PatientOutput)
 
+    @login_required_resolver
     def resolve_patients(self, info):
-        return Patient.objects.all()
+        if info.context.user.user_type == "doctor":
+            doctor = Doctor.objects.get(user=info.context.user)
+            patients = Patient.objects.filter(
+            consultations__doctor=doctor
+        ).distinct()
+            return patients
+        else:
+            return Patient.objects.all()
 
 # Query to fetch a single Doctor by ID
     doctor = Field(DoctorOutput, id=ID(required=True))
