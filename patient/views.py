@@ -755,14 +755,13 @@ class CreatePrescription(Mutation):
         medication = String(required=True)
         dosage = String(required=True)
         instructions = String(required=False)
-        test_result_id = Int(required=False)
-        doctor_id = ID(required=True)  # Accept doctor_id as argument
+        test_result_id = ID(required=False) # Accept doctor_id as argument
 
     prescription = Field(PrescriptionOutput)
     errors = List(String)
 
-    @classmethod
-    def mutate(cls, root, info, consultation_id, medication, dosage, instructions, test_result_id, doctor_id):
+    @login_required_resolver
+    def mutate(self, info, consultation_id, medication, dosage, instructions, test_result_id):
         user = info.context.user
 
         # Authentication check
@@ -771,7 +770,7 @@ class CreatePrescription(Mutation):
 
         # Check if the user is a doctor (if required)
         try:
-            doctor = Doctor.objects.get(id=doctor_id)  # Fetch the doctor using the provided doctor_id
+            doctor = Doctor.objects.get(user=user)  # Fetch the doctor using the provided doctor_id
         except Doctor.DoesNotExist:
             return CreatePrescription(errors=["Doctor not found"])
 
