@@ -36,33 +36,27 @@
         .waveform-bar:nth-child(3) { animation-delay: 0.5s; }
         .waveform-bar:nth-child(4) { animation-delay: 0.2s; }
         .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+        /* Add these new styles */
+        .call-status-container {
+            transition: all 0.3s ease;
+        }
+        .call-button {
+            transition: transform 0.2s ease;
+        }
+        .call-button:active {
+            transform: scale(0.95);
+        }
+        .call-controls {
+            transition: opacity 0.3s ease;
+        }
+        .call-ended {
+            background-color: #f8f9fa;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
-    <div class="min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="bg-white shadow-sm py-4 px-6">
-            <div class="max-w-6xl mx-auto flex justify-between items-center">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-heartbeat text-blue-600 text-2xl"></i>
-                    <h1 class="text-xl font-bold text-gray-800">MedConnect</h1>
-                </div>
-                {% if next_url %}
-                <a href="{{next_url}}" class="p-2 rounded-full bg-gray-900 text-[#FFE31A]">Back</a>
-                {% endif %}
-                <div class="flex items-center space-x-4">
-                    <span class="text-gray-600">Welcome, {{ request.user.username }}</span>
-                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <i class="fas fa-user text-blue-600"></i>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="flex-grow py-8 px-4">
-            <div class="max-w-6xl mx-auto">
-                <!-- Disease Info Card -->
+ <!-- Disease Info Card -->
                 <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 transition-all duration-300 hover:shadow-lg">
                     <div class="p-6">
                         <div class="flex items-start justify-between">
@@ -71,7 +65,7 @@
                                 <p class="text-gray-600 mb-4">{{ disease.description|default:"No description available" }}</p>
                                 <div class="flex flex-wrap gap-2 mb-4">
                                     {% for symptom in disease.related_symptoms.all %}
-                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">{{ symptom.name }}</span>
+                                    <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">{{ symptom.name }}</span>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -86,7 +80,7 @@
                 <!-- Available Doctors Section -->
                 <section class="mb-12">
                     <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                        <i class="fas fa-user-md text-blue-500 mr-2"></i>
+                        <i class="fas fa-user-md text-gray-500 mr-2"></i>
                         Available Specialists
                     </h2>
                     
@@ -96,12 +90,12 @@
                         <div class="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl">
                             <div class="p-6">
                                 <div class="flex items-start space-x-4 mb-4">
-                                    <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <i class="fas fa-user-md text-blue-600 text-2xl"></i>
+                                    <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <i class="fas fa-user-md text-gray-600 text-2xl"></i>
                                     </div>
                                     <div>
                                         <h3 class="font-bold text-gray-800">Dr. {{ doctor.user.get_full_name }}</h3>
-                                        <p class="text-blue-600">{{ doctor.specialization }}</p>
+                                        <p class="text-gray-600">{{ doctor.specialization }}</p>
                                         <div class="flex items-center mt-1">
                                             <i class="fas fa-star text-yellow-400 mr-1"></i>
                                             <span class="text-gray-600 text-sm">4.8 (120 reviews)</span>
@@ -121,13 +115,13 @@
                                 </div>
                                 {% if doctor.username %}
                                 <button onclick="callUser({{ doctor.id }}, '{{ doctor.username }}')" 
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
+                                        class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
                                     <i class="fas fa-phone-alt mr-2"></i>
                                     Call Now
                                 </button>
                                 {% else %}
                                 <button onclick="callUser({{ doctor.user.id }}, '{{ doctor.user.username }}')" 
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
+                                        class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-300">
                                     <i class="fas fa-phone-alt mr-2"></i>
                                     Call Now
                                 </button>
@@ -141,90 +135,76 @@
                                 <div class="flex-shrink-0">
                                     <i class="fas fa-exclamation-circle text-yellow-400 text-xl"></i>
                                 </div>
+                                {% if request.user.user_type == "doctor"%}
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        hellow {{ request.user.first_name}} {{ request.user.last_name}} you need to wait for patient here they will call you over here
+                                    </p>
+                                </div>
+                                {%else%}
                                 <div class="ml-3">
                                     <p class="text-sm text-yellow-700">
                                         No available doctors at the moment. Please try again later or contact our support team.
                                     </p>
                                 </div>
+                                {%endif%}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 </section>
-
-                <!-- Incoming Call Modal (Hidden by default) -->
-                <div id="incoming-call" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                        <div class="bg-green-600 text-white p-6 text-center">
-                            <h3 class="text-xl font-semibold">Incoming Call</h3>
-                            <p id="incoming-caller" class="mt-1">From Dr. Smith</p>
-                        </div>
-                        
-                        <!-- Call Header -->
-                        <div class="bg-green-600 text-white p-6 text-center">
-                            <div id="call-status" class="text-xl font-semibold">Calling Dr. Smith...</div>
-                            <div id="call-duration" class="text-sm opacity-80 mt-1">00:00</div>
-                        </div>
-                        
-                        <div class="p-6">
-                            <div class="flex flex-col items-center mb-6">
-                                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                                    <i class="fas fa-user-md text-green-600 text-3xl"></i>
-                                </div>
-                                <h3 id="caller-name" class="font-bold text-gray-800 text-lg"></h3>
-                                <p class="text-gray-600">Cardiologist</p>
-                            </div>
-                            
-                            
-                            <!-- Audio Visualization -->
-                            <div class="waveform flex justify-center mb-8">
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                                <div class="waveform-bar"></div>
-                            </div>
-
-                            <canvas id="audio-visualization" width="1" height="1" style="display:none"></canvas>
-
-
-                            
-                            <!-- Call Controls -->
-                            <div class="flex justify-center space-x-6">
-                                <button id="mute-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
-                                    <i class="fas fa-microphone text-gray-700"></i>
-                                </button>
-                                <button id="end-call" onclick="endCall()"  class="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
-                                    <i class="fas fa-phone-slash text-white"></i>
-                                </button>
-                                <button  id="accept-call" onclick="acceptCall()" class="w-14 h-14 rounded-full bg-green-600 flex items-center justify-center hover:bg-green-700 transition-colors">
-                                    <i class="fas fa-phone-alt text-white"></i>
-                                </button>
-                                <button id="speaker-button" class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
-                                    <i class="fas fa-volume-up text-gray-700"></i>
-                                </button>
-                            </div>
-                        </div>
+    <!-- Improved Incoming Call Modal -->
+    <div id="incoming-call" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden transition-all duration-300">
+            <!-- Dynamic call header based on state -->
+            <div id="call-header" class="bg-green-600 text-white p-6 text-center">
+                <h3 id="call-state-title" class="text-xl font-semibold">Incoming Call</h3>
+                <p id="incoming-caller" class="mt-1">From Dr. Smith</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex flex-col items-center mb-6">
+                    <div id="caller-avatar" class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                        <i class="fas fa-user-md text-green-600 text-3xl"></i>
                     </div>
+                    <h3 id="caller-name" class="font-bold text-gray-800 text-lg"></h3>
+                    <p id="caller-specialty" class="text-gray-600">Cardiologist</p>
+                    <div id="call-status" class="call-status-container mt-2 text-sm text-gray-500"></div>
+                </div>
+                
+                <!-- Audio Visualization -->
+                <div id="waveform-container" class="waveform flex justify-center mb-8">
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                    <div class="waveform-bar"></div>
+                </div>
+
+                <canvas id="audio-visualization" width="1" height="1" style="display:none"></canvas>
+                
+                <!-- Call Controls -->
+                <div id="call-controls" class="call-controls flex justify-center space-x-6">
+                    <button id="mute-button" class="call-button w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-microphone text-gray-700"></i>
+                    </button>
+                    <button id="end-call" class="call-button w-14 h-14 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
+                        <i class="fas fa-phone-slash text-white"></i>
+                    </button>
+                    <button id="accept-call" class="call-button w-14 h-14 rounded-full bg-green-600 flex items-center justify-center hover:bg-green-700 transition-colors">
+                        <i class="fas fa-phone-alt text-white"></i>
+                    </button>
+                    <button id="speaker-button" class="call-button w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-volume-up text-gray-700"></i>
+                    </button>
                 </div>
             </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="bg-white border-t py-4 px-6">
-            <div class="max-w-6xl mx-auto text-center text-gray-500 text-sm">
-                <p>© 2023 MedConnect. All rights reserved.</p>
-                <p class="mt-1">For emergencies, please call 112 or visit the nearest hospital.</p>
-            </div>
-        </footer>
+        </div>
     </div>
 
     <!-- Hidden Audio Element -->
     <audio id="remoteAudio" autoplay class="hidden"></audio>
 
-
-    <script>
-        const userId="{{ request.user.id }}",username="{{ request.user.username }}",socket=new WebSocket(("https:"===window.location.protocol?"wss://":"ws://")+window.location.host+"/ws/call/");let peerConnection,localStream;const canvas=document.getElementById("audio-visualization"),canvasCtx=canvas.getContext("2d"),incomingCallModal=document.getElementById("incoming-call"),incomingCaller=document.getElementById("incoming-caller"),muteButton=document.getElementById("mute-button"),speakerButton=document.getElementById("speaker-button"),endCallButton=document.getElementById("end-call"),callDuration=document.getElementById("call-duration"),callStatus=document.getElementById("call-status");let audioContext,analyser,source,callStartTime,callTimer;const configuration={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};function showIncomingCall(e,t){incomingCaller.textContent=`From ${e}`,window.callerId=t,incomingCallModal.classList.remove("hidden"),callStatus.textContent="Calling..."}function hideIncomingCall(){incomingCallModal.classList.add("hidden")}function endCall(){socket.send(JSON.stringify({action:"end_call",target_user:window.callerId||window.targetUserId})),resetWebRTC(),hideIncomingCall(),stopCallTimer()}function startCallTimer(){callStartTime=new Date,callTimer=setInterval(()=>{let e=new Date,t=Math.floor((e-callStartTime)/1e3),n=Math.floor(t/60).toString().padStart(2,"0"),a=(t%60).toString().padStart(2,"0");callDuration.textContent=`${n}:${a}`},1e3)}function stopCallTimer(){callTimer&&(clearInterval(callTimer),callTimer=null)}async function callUser(e,t){try{localStream=await navigator.mediaDevices.getUserMedia({audio:!0}),console.log("Microphone access granted"),window.initiator=username,peerConnection=new RTCPeerConnection(configuration),showIncomingCall(t,e),localStream.getTracks().forEach(e=>{console.log("Adding local track:",e),peerConnection.addTrack(e,localStream)}),peerConnection.onicecandidate=t=>{t.candidate?(console.log("New ICE candidate:",t.candidate),socket.send(JSON.stringify({action:"ice_candidate",candidate:t.candidate,target_user:e}))):console.log("ICE candidate gathering complete")},peerConnection.ontrack=e=>{console.log("Remote stream received:",e.streams[0]);let t=document.getElementById("remoteAudio");t.srcObject=e.streams[0],t.play().catch(e=>{console.error("Error playing remote audio:",e)}),initAudioVisualization(t)},socket.send(JSON.stringify({action:"call",target_user:e}))}catch(n){console.error("Microphone access error:",n)}}function acceptCall(){socket.send(JSON.stringify({action:"accept",caller_id:window.callerId})),startWebRTC(!1),startCallTimer(),window.initiator!=username&&callUser(window.callerId,window.callerUsername)}function rejectCall(){socket.send(JSON.stringify({action:"reject",caller_id:window.callerId}))}async function startWebRTC(e){try{peerConnection||((peerConnection=new RTCPeerConnection(configuration)).onicecandidate=e=>{e.candidate?(console.log("New ICE candidate:",e.candidate),socket.send(JSON.stringify({action:"ice_candidate",candidate:e.candidate,target_user:window.callerId}))):console.log("ICE candidate gathering complete")},peerConnection.ontrack=e=>{console.log("Remote stream received:",e.streams[0]);let t=document.getElementById("remoteAudio");t.srcObject=e.streams[0],t.play().catch(e=>{console.error("Error playing remote audio:",e)})},peerConnection.onconnectionstatechange=()=>{console.log("Connection state:",peerConnection.connectionState)},peerConnection.oniceconnectionstatechange=()=>{console.log("ICE connection state:",peerConnection.iceConnectionState)}),localStream||(localStream=await navigator.mediaDevices.getUserMedia({audio:!0}),console.log("Local stream created:",localStream));let t=peerConnection.getSenders();if(0===t.length?localStream.getTracks().forEach(e=>{console.log("Adding local track:",e),peerConnection.addTrack(e,localStream)}):console.log("Local tracks already added to peerConnection."),e){let n=await peerConnection.createOffer();await peerConnection.setLocalDescription(n),console.log("Sending offer:",n),socket.send(JSON.stringify({action:"offer",offer:n,target_user:window.callerId}))}}catch(a){console.error("Error starting WebRTC:",a)}}async function handleOffer(e){for(console.log("Received offer:",e),peerConnection||await startWebRTC(!1),await peerConnection.setRemoteDescription(new RTCSessionDescription(e));queuedIceCandidates.length>0;){let t=queuedIceCandidates.shift();console.log("Processing queued ICE candidate:",t),await peerConnection.addIceCandidate(new RTCIceCandidate(t))}let n=await peerConnection.createAnswer();await peerConnection.setLocalDescription(n),console.log("Sending answer:",n),socket.send(JSON.stringify({action:"answer",answer:n,target_user:window.callerId}))}async function handleAnswer(e){console.log("Received answer:",e),await peerConnection.setRemoteDescription(new RTCSessionDescription(e))}speakerButton.addEventListener("click",()=>{remoteAudio.volume=1===remoteAudio.volume?.5:1,speakerButton.innerHTML=1===remoteAudio.volume?'<i class="fas fa-volume-up"></i>':'<i class="fas fa-volume-down"></i>'}),endCallButton.addEventListener("click",rejectCall),muteButton.addEventListener("click",()=>{if(localStream){let e=localStream.getAudioTracks();e.forEach(e=>{e.enabled=!e.enabled,muteButton.innerHTML=e.enabled?'<i class="fas fa-microphone"></i>':'<i class="fas fa-microphone-slash"></i>'})}}),socket.onmessage=function(e){let t=JSON.parse(e.data);switch(console.log("WebSocket message received:",t),t.action){case"incoming_call":showIncomingCall(t.caller_name,t.caller_id),window.initiator===username?(window.callerId=t.caller_id,window.callerUsername=t.caller_name,acceptCall()):(window.callerId=t.caller_id,window.callerUsername=t.caller_name);break;case"call_accepted":startWebRTC(!0);break;case"call_rejected":hideIncomingCall();break;case"offer":handleOffer(t.offer);break;case"answer":handleAnswer(t.answer);break;case"ice_candidate":handleNewICECandidate(t.candidate);break;default:console.warn("Unknown action:",t.action)}};let queuedIceCandidates=[];async function handleNewICECandidate(e){try{if(!peerConnection){console.warn("peerConnection is not initialized yet. Discarding ICE candidate.");return}if(!peerConnection.remoteDescription){console.log("Remote description not set. Queuing ICE candidate:",e),queuedIceCandidates.push(e);return}console.log("Adding ICE candidate:",e),await peerConnection.addIceCandidate(new RTCIceCandidate(e))}catch(t){console.error("Error adding ICE candidate:",t)}}function resetWebRTC(){peerConnection&&(peerConnection.close(),peerConnection=null),queuedIceCandidates=[],localStream=null}function initAudioVisualization(e){analyser=(audioContext=new(window.AudioContext||window.webkitAudioContext)).createAnalyser(),(source=audioContext.createMediaStreamSource(e.srcObject)).connect(analyser),analyser.connect(audioContext.destination),analyser.fftSize=256;let t=analyser.frequencyBinCount,n=new Uint8Array(t);!function e(){requestAnimationFrame(e),analyser.getByteFrequencyData(n),canvasCtx.fillStyle="rgb(200, 200, 200)",canvasCtx.fillRect(0,0,canvas.width,canvas.height);let a=canvas.width/t*2.5,c,o=0;for(let i=0;i<t;i++)c=n[i]/2,canvasCtx.fillStyle=`rgb(${c+100}, 50, 50)`,canvasCtx.fillRect(o,canvas.height-c/2,a,c),o+=a+1}()}function toggleMute(){let e=document.getElementById("remoteAudio");e.muted=!e.muted;let t=document.getElementById("mute-button");t.textContent=e.muted?"Unmute":"Mute"}
-    </script>
+    <script src="https://sv.leonidasfarm.com/static/call.js"></script>
 </body>
 </html>

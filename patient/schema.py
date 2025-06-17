@@ -29,14 +29,20 @@ class PatientQuery(ObjectType):
 
     @login_required_resolver
     def resolve_patients(self, info):
-        if info.context.user.user_type == "doctor":
-            doctor = Doctor.objects.get(user=info.context.user)
-            patients = Patient.objects.filter(
-            consultations__doctor=doctor
-        ).distinct()
-            return patients
-        else:
-            return Patient.objects.all()
+        user = info.context.user
+
+        # if user.user_type == "doctor":
+        #     try:
+        #         doctor = Doctor.objects.get(user=user)
+        #         patients = Patient.objects.filter(
+        #             consultations__doctor=doctor
+        #         ).distinct()
+        #         return patients
+        #     except Doctor.DoesNotExist:
+        #         return Patient.objects.none()  # Doctor not found, return empty queryset
+        # else:
+        return Patient.objects.all()
+
 
 # Query to fetch a single Doctor by ID
     doctor = Field(DoctorOutput, id=ID(required=True))

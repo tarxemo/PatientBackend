@@ -20,3 +20,5 @@ class CustomUserOutput(ObjectType):
     is_verified = graphene.Boolean()
     created_at = DateTime()
     updated_at = DateTime()
+    
+    is_active = graphene.Boolean()

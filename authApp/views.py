@@ -1,5 +1,6 @@
 from contextvars import Token
 import uuid
+from patient.utils import handle_user_profile
 from authApp.decorators import login_required_resolver
 import graphene
 from graphene import Mutation
@@ -13,7 +14,7 @@ from graphql import GraphQLError
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.cache import cache
-
+from authApp.inputs import *
 
 import os
 import shutil
@@ -82,7 +83,6 @@ class LogoutMutation(graphene.Mutation):
         # Blacklist the refresh token (if using Django SimpleJWT's token blacklist feature)
         return LogoutMutation(success=True)
 
-
 # Mutation to create a new user
 class CreateUser(Mutation):
     class Arguments:
@@ -116,18 +116,50 @@ class CreateUser(Mutation):
         except Exception as e:
             raise GraphQLError(f"User creation failed: {str(e)}")
         
-
-# Define Mutation
-class UpdateCustomUser(Mutation):
+class CreateCustomUser(Mutation):
     class Arguments:
-        user_data = UserUpdateInput(required=True) # Now required since we're not using context user
-
+        user_data = UserInput(required=True)
+    
     user = graphene.Field(CustomUserOutput)
-
+    success = graphene.Boolean()
+    message = graphene.String()
+    
     def mutate(self, info, user_data):
         try:
-            # Get user by provided ID (no auth check)
+            # Create the base user
+            user = CustomUser.objects.create_user(
+                username=user_data.username,
+                email=user_data.email,
+                password=user_data.password,
+                first_name=user_data.first_name,
+                last_name=user_data.last_name,
+                user_type=user_data.user_type,
+                phone_number=user_data.phone_number,
+                address=user_data.address,
+                date_of_birth=user_data.date_of_birth,
+                is_verified=user_data.is_verified if hasattr(user_data, 'is_verified') else False
+            )
+            
+            # Handle profile creation
+            handle_user_profile(user, user_data.user_type, user_data.profile_data)
+            
+            return CreateCustomUser(user=user, success=True, message="Ready")
+        except Exception as e:
+            raise GraphQLError(f"User creation failed: {str(e)}")
+        
+        
+class UpdateCustomUser(Mutation):
+    class Arguments:
+        user_data = UserUpdateInput(required=True)
+        profile_data = ProfileInput(required=False)
+    
+    user = graphene.Field(CustomUserOutput)
+
+    def mutate(self, info, user_data, profile_data=None):
+        try:
+            # Get user by provided ID
             user = CustomUser.objects.get(id=user_data.user_id)
+            old_user_type = user.user_type
 
             # Handle password update if provided
             if user_data.old_password and user_data.new_password:
@@ -156,29 +188,53 @@ class UpdateCustomUser(Mutation):
                         update_fields.append(field)
 
             user.save(update_fields=update_fields)
+            
+            # Handle profile changes if user_type changed or profile_data provided
+            if (hasattr(user_data, 'user_type') and user_data.user_type != old_user_type) or profile_data:
+                handle_user_profile(user, user.user_type, profile_data)
+            
             return UpdateCustomUser(user=user)
 
         except CustomUser.DoesNotExist:
             raise GraphQLError("User not found")
         except Exception as e:
             raise GraphQLError(f"Update failed: {str(e)}")
-# Mutation to delete a user
-class DeleteCustomUser(Mutation):
+
+class DeleteUser(Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        user_id = graphene.ID(required=True)
 
     success = graphene.Boolean()
+    message = graphene.String()
 
-    def mutate(self, info, id):
-        user = CustomUser.objects.get(id=id)
-        user.delete()
-        return DeleteCustomUser(success=True)
+    def mutate(self, info, user_id):
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            
+            # Delete the associated profile based on user type
+            if user.user_type == 'doctor' and hasattr(user, 'doctor_profile'):
+                user.doctor_profile.delete()
+            elif user.user_type == 'patient' and hasattr(user, 'patient_profile'):
+                user.patient_profile.delete()
+            elif user.user_type == 'lab_technician' and hasattr(user, 'labtech_profile'):
+                user.labtech_profile.delete()
+            
+            # Delete the user
+            user.delete()
+            
+            return DeleteUser(success=True, message="User deleted successfully")
+        except CustomUser.DoesNotExist:
+            raise GraphQLError("User not found")
+        except Exception as e:
+            raise GraphQLError(f"Failed to delete user: {str(e)}")
+          
 
 
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
-    update_user = UpdateCustomUser.Field()
-    delete_user = DeleteCustomUser.Field()
+    admin_create_user = CreateCustomUser.Field()
+    admin_update_user = UpdateCustomUser.Field()
+    admin_delete_user = DeleteUser.Field()
     login = LoginMutation.Field()
     refresh_token = RefreshTokenMutation.Field()
     logout = LogoutMutation.Field()
@@ -217,7 +273,7 @@ from rest_framework.views import APIView
 from patient.models import Disease, Symptom  # Assuming Disease model exists
 
 # Load Whisper speech-to-text model
-# whisper_model = whisper.load_model("large")
+#whisper_model = whisper.load_model("large")
 
 # Load disease prediction model and necessary files
 disease_model = joblib.load("swahili_disease_predictor_syllable.pkl")

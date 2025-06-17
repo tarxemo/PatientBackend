@@ -14,7 +14,6 @@ class BaseProfile(models.Model):
 
 # Patient Model
 class Patient(BaseProfile):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="patient")
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null=True, blank=True)
     medical_history = models.TextField(blank=True, null=True)
@@ -24,9 +23,9 @@ class Patient(BaseProfile):
 
 # Doctor Model
 class Doctor(BaseProfile):
-    specialization = models.CharField(max_length=100)
+    specialization = models.CharField(max_length=100, blank=True, null=True)
     license_number = models.CharField(max_length=50, unique=True)
-    years_of_experience = models.IntegerField(validators=[MinValueValidator(0)])
+    years_of_experience = models.IntegerField(validators=[MinValueValidator(0)], default=1)
     is_available = models.BooleanField(default=True)
 
     def __str__(self):
@@ -34,9 +33,9 @@ class Doctor(BaseProfile):
 
 # Doctor Model
 class LabTech(BaseProfile):
-    specialization = models.CharField(max_length=100)
+    specialization = models.CharField(max_length=100, blank=True, null=True)
     license_number = models.CharField(max_length=50, unique=True)
-    years_of_experience = models.IntegerField(validators=[MinValueValidator(0)])
+    years_of_experience = models.IntegerField(validators=[MinValueValidator(0)], default=1)
     is_available = models.BooleanField(default=True)
 
     def __str__(self):

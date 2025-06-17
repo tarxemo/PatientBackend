@@ -5,7 +5,7 @@ from .models import (
     Patient, Doctor, Laboratory, Symptom, Disease, Consultation,
     MedicalTest, PrescribedTest, TestOrder, TestResult, Prescription
 )
-from authApp.outputs import CustomUserOutput
+from authApp.outputs import *
 # Output for BaseProfile (abstract model)
 class BaseProfileOutput(ObjectType):
     phone_number = String()
